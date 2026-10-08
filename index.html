@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ANBK - Realtime Token Monitor & Share</title>
+  <link rel="icon" href="img/anbk-logo.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <!-- MAIN APP CONTAINER -->
+  <div class="app-layout">
+    <!-- SIDEBAR (ANBK OFFICIAL STYLE) -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-logo-wrap">
+          <img src="img/anbk-logo.png" alt="Logo ANBK" class="brand-logo-img">
+        </div>
+        <button class="sidebar-collapse-btn" id="sidebarToggle" title="Ciutkan Sidebar">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item" data-tab="beranda">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span class="nav-label">Beranda</span>
+        </a>
+        <a href="#" class="nav-item" data-tab="status-peserta">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+          <span class="nav-label">Status Peserta</span>
+        </a>
+        <a href="#" class="nav-item" data-tab="daftar-peserta">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+          <span class="nav-label">Daftar Peserta</span>
+        </a>
+        <a href="#" class="nav-item active" data-tab="status-tes">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+          <span class="nav-label">Status Tes</span>
+          <span class="nav-badge">LIVE</span>
+        </a>
+        <a href="#" class="nav-item" data-tab="request-reset">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="2"/></svg>
+          <span class="nav-label">Request Reset Login</span>
+        </a>
+        <a href="#" class="nav-item" data-tab="daftar-login">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span class="nav-label">Daftar Login</span>
+        </a>
+        <a href="#" class="nav-item" data-tab="kelompok-tes">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span class="nav-label">Kelompok Tes</span>
+        </a>
+        <a href="#" class="nav-item" data-tab="reset-subtes">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          <span class="nav-label">Reset Subtes Peserta</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button type="button" class="server-status-pill online clickable" id="btnOpenSettings" title="Pengaturan Koneksi GAS (Klik untuk Konfigurasi)">
+          <span class="status-indicator-dot"></span>
+          <span class="status-text" id="statusText">LIVE SINKRON</span>
+          <svg class="status-gear-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+        <div class="timer-countdown" id="timerCountdown">
+          <svg viewBox="0 0 36 36" class="circular-chart">
+            <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+            <path class="circle-progress" id="countdownCircle" stroke-dasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+          </svg>
+          <span class="countdown-number" id="countdownSec">5s</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN BODY CONTENT -->
+    <main class="main-content">
+      <!-- TOP NAVBAR -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-toggle" id="mobileMenuBtn">
+            <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <h1 class="portal-title">ASSESMENT NASIONAL BERBASIS KOMPUTER</h1>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Refresh Now Button -->
+          <button class="btn-refresh" id="btnManualRefresh" title="Segarkan Data Sekarang">
+            <svg id="refreshIcon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            <span class="hide-mobile">Refresh</span>
+          </button>
+
+          <!-- Audio Bell Toggle -->
+          <button class="btn-icon-toggle active" id="btnAudioToggle" title="Suara Notifikasi Token Baru">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="audio-status-dot"></span>
+          </button>
+
+          <!-- Current Proctor Profile (From Image 1: Hi, U05110068-DK7U / GLDTKASMA) -->
+          <div class="user-profile">
+            <div class="profile-info">
+              <span class="user-greeting">Hi, <strong id="activeProctorId">U05110068-DK7U</strong></span>
+              <span class="user-school" id="activeSchoolCode">GLDTKASMA</span>
+            </div>
+            <div class="avatar-badge" title="Akun Proktor Aktif">U</div>
+          </div>
+        </div>
+      </header>
+
+      <!-- CONTENT BODY -->
+      <div class="content-wrapper">
+        <!-- BREADCRUMB & VIEW SWITCHER -->
+        <div class="page-header-row">
+          <div class="breadcrumb-container">
+            <span class="breadcrumb-title">Status Tes</span>
+            <span class="breadcrumb-divider">|</span>
+            <nav class="breadcrumb-path">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+              <span class="bullet">•</span>
+              <span class="crumb-active" id="currentViewLabel">Papan Monitor Token Bersama</span>
+            </nav>
+          </div>
+
+          <!-- VIEW MODE TABS -->
+          <div class="view-mode-tabs">
+            <button class="view-tab-btn active" data-view="boardView">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              <span>Monitor Kartu Token</span>
+            </button>
+            <button class="view-tab-btn" data-view="anbkView">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+              <span>Tampilan Resmi ANBK</span>
+            </button>
+            <button class="view-tab-btn" data-view="sheetView">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              <span>Format Spreadsheet</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- INFO BANNER: SHARED ROOMS LOGIC -->
+        <div class="shared-notice-banner">
+          <div class="notice-icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          </div>
+          <div class="notice-content">
+            <div class="notice-title">Sistem Berbagi Token Tes ANBK Realtime Antar-Ruang:</div>
+            <div class="notice-tags">
+              <span class="badge-pair group-1">R1 & R2</span>
+              <span class="badge-pair group-2">R3 & R4</span>
+              <span class="badge-pair group-3">R5 & R6</span>
+              <span class="badge-pair group-4">R7</span>
+              <span class="badge-pair group-5">R8 & R9</span>
+              <span class="badge-pair group-6">R10 & R11</span>
+            </div>
+            <div class="notice-sub">Satu token digunakan bersama oleh pasangan ruang di atas. Begitu token dirilis di salah satu ruang, ruang pasangannya otomatis terupdate secara realtime!</div>
+          </div>
+          <div class="last-sync-tag">
+            <span class="sync-dot"></span>
+            <span>Update: <span id="lastUpdatedClock">--:--:--</span></span>
+          </div>
+        </div>
+
+        <!-- FILTER & ACTION TOOLBAR -->
+        <div class="filter-toolbar">
+          <div class="room-filter-chips" id="roomFilterChips">
+            <button class="chip-btn active" data-filter="all">Semua Ruang</button>
+            <button class="chip-btn" data-filter="1">R1 & R2</button>
+            <button class="chip-btn" data-filter="2">R3 & R4</button>
+            <button class="chip-btn" data-filter="3">R5 & R6</button>
+            <button class="chip-btn" data-filter="4">R7</button>
+            <button class="chip-btn" data-filter="5">R8 & R9</button>
+            <button class="chip-btn" data-filter="6">R10 & R11</button>
+          </div>
+
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="searchInput" placeholder="Cari nama pengawas / ruang / token...">
+          </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- VIEW 1: MONITOR KARTU TOKEN (BOARD VIEW)      -->
+        <!-- ============================================== -->
+        <div id="boardView" class="view-panel active">
+          <div class="cards-grid" id="tokenCardsGrid">
+            <!-- Populated via JavaScript dynamically -->
+          </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- VIEW 2: TAMPILAN RESMI ANBK (STATUS TES TABLE) -->
+        <!-- ============================================== -->
+        <div id="anbkView" class="view-panel">
+          <div class="anbk-table-card">
+            <div class="table-card-toolbar">
+              <div class="anbk-account-selector">
+                <label for="proctorSelector">Pilih Akun Proktor ANBK:</label>
+                <select id="proctorSelector" class="form-select">
+                  <option value="all">Semua Ruangan & Akun (Gabungan)</option>
+                  <option value="1">U05110068-AV3U (R1 & R2 - U. Puja & U. Nikma)</option>
+                  <option value="2">U05110068-BV2U (R3 & R4 - U. Khofifah & U. Tasya)</option>
+                  <option value="3">U05110068-CX7U (R5 & R6 - U. Ady & U. Anita)</option>
+                  <option value="4">U05110068-FZ4U (R7 - U. Laila)</option>
+                  <option value="5" selected>U05110068-DK7U (R8 & R9 - U. Tito & U. Rafly) [Screenshot]</option>
+                  <option value="6">U05110068-EK3U (R10 & R11 - U. Yusuf & U. Agus)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="anbk-table">
+                <thead>
+                  <tr>
+                    <th>No</th>
+                    <th>Kode Tes <span class="sort-icon">⇅</span></th>
+                    <th>Waktu Tes <span class="sort-icon">⇅</span></th>
+                    <th>Waktu Perpanjangan Tes <span class="sort-icon">⇅</span></th>
+                    <th>Kelompok Tes <span class="sort-icon">⇅</span></th>
+                    <th>Set <span class="sort-icon">⇅</span></th>
+                    <th>Token Tes <span class="sort-icon">⇅</span></th>
+                    <th>Ruang Pengguna</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="anbkTableBody">
+                  <!-- Populated dynamically via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- VIEW 3: FORMAT SPREADSHEET (PERSIS SCREENSHOT) -->
+        <!-- ============================================== -->
+        <div id="sheetView" class="view-panel">
+          <div class="sheet-table-card">
+            <div class="sheet-header-title">
+              <h3>Daftar Proktor, Ruang & Pasangan Token (Google Sheet)</h3>
+              <p>Struktur data di bawah ini mencerminkan tabel Google Sheets yang digunakan sebagai database.</p>
+            </div>
+            <div class="table-responsive">
+              <table class="spreadsheet-table" id="spreadsheetPreviewTable">
+                <thead>
+                  <tr class="sheet-head-row">
+                    <th class="cell-index">[0] NAMA PENGAWAS</th>
+                    <th>PROKTOR ID</th>
+                    <th>PASSWORD</th>
+                    <th>RUANG</th>
+                    <th>TOKEN</th>
+                    <th>AKSI</th>
+                  </tr>
+                </thead>
+                <tbody id="spreadsheetBody">
+                  <!-- Populated dynamically via JS matching Image 2 -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div> <!-- /.content-wrapper -->
+    </main>
+  </div> <!-- /.app-layout -->
+
+  <!-- ============================================== -->
+  <!-- MODAL: UPDATE TOKEN                           -->
+  <!-- ============================================== -->
+  <div class="modal-backdrop" id="updateTokenModal" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <h3 id="modalGroupTitle">Rilis / Perbarui Token</h3>
+          <p id="modalGroupSubtitle">Untuk Ruang R1 & R2</p>
+        </div>
+        <button class="modal-close-btn" id="closeUpdateModalBtn">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <form id="tokenUpdateForm">
+          <input type="hidden" id="modalGroupId" value="">
+
+          <div class="form-group">
+            <label for="newTokenInput">Masukkan Token Baru (6 Karakter Huruf):</label>
+            <div class="token-input-wrapper">
+              <input 
+                type="text" 
+                id="newTokenInput" 
+                class="token-input-field" 
+                maxlength="6" 
+                placeholder="CONTOH" 
+                autocomplete="off" 
+                spellcheck="false"
+                required
+              >
+              <button type="button" class="btn-generate-token" id="btnGenerateRandomToken" title="Generate Token Otomatis">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                Acak
+              </button>
+            </div>
+            <small class="form-hint">Token ANBK terdiri dari 6 huruf kapital acak (misal: JUBLQF, CKDZEG).</small>
+          </div>
+
+          <div class="form-group">
+            <label for="updaterNameInput">Nama Pengupdate (Opsional):</label>
+            <input type="text" id="updaterNameInput" class="form-control" placeholder="Contoh: Proktor R8">
+          </div>
+
+          <div class="notice-box-warning">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span>Token ini akan langsung diperbarui ke Google Sheets dan terlihat oleh seluruh ruang terkait secara realtime.</span>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn-cancel" id="cancelUpdateBtn">Batal</button>
+            <button type="submit" class="btn-submit" id="submitUpdateBtn">
+              <span id="btnSubmitText">Simpan & Bagikan Token</span>
+              <span class="spinner" id="submitSpinner" style="display: none;"></span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: SETTINGS (GOOGLE APPS SCRIPT CONFIG)    -->
+  <!-- ============================================== -->
+  <div class="modal-backdrop" id="settingsModal" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <h3>Pengaturan Backend & Google Sheets</h3>
+          <p>Konfigurasi koneksi API Google Apps Script untuk realtime sync</p>
+        </div>
+        <button class="modal-close-btn" id="closeSettingsModalBtn">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <form id="settingsForm">
+          <div class="form-group">
+            <label for="gasUrlInput"><strong>URL Web App Google Apps Script (GAS):</strong></label>
+            <input 
+              type="url" 
+              id="gasUrlInput" 
+              class="form-control" 
+              placeholder="https://script.google.com/macros/s/AKfycb.../exec"
+              spellcheck="false"
+            >
+            <small class="form-hint">
+              Tempelkan URL Web App dari deployment Google Apps Script Anda (berakhiran <code>/exec</code>).
+            </small>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-half">
+              <label for="refreshIntervalSelect"><strong>Interval Auto-Refresh:</strong></label>
+              <select id="refreshIntervalSelect" class="form-select">
+                <option value="3">Setiap 3 Detik (Sangat Cepat)</option>
+                <option value="5" selected>Setiap 5 Detik (Rekomendasi)</option>
+                <option value="10">Setiap 10 Detik</option>
+                <option value="15">Setiap 15 Detik</option>
+                <option value="30">Setiap 30 Detik</option>
+                <option value="0">Manual Saja (Nonaktifkan Auto)</option>
+              </select>
+            </div>
+
+            <div class="form-group col-half">
+              <label for="soundNotificationSelect"><strong>Suara Notifikasi Token:</strong></label>
+              <select id="soundNotificationSelect" class="form-select">
+                <option value="true" selected>Aktif (Bunyi 'Chime' saat Token Berubah)</option>
+                <option value="false">Nonaktif (Hening)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- CONNECTION TEST RESULT -->
+          <div id="connectionTestResult" class="connection-test-banner" style="display: none;"></div>
+
+          <div class="gas-quick-guide">
+            <h4>💡 Cara Mendapatkan URL Web App Google Apps Script:</h4>
+            <ol>
+              <li>Buat Google Spreadsheet baru di Google Drive Anda.</li>
+              <li>Buka menu <strong>Ekstensi (Extensions)</strong> &gt; <strong>Apps Script</strong>.</li>
+              <li>Salin seluruh kode dari file <code>gas/Code.gs</code> di repo ini, lalu tempel ke editor Apps Script.</li>
+              <li>Jalankan fungsi <code>setupSheet</code> sekali untuk mengisi data awal ruang &amp; warna.</li>
+              <li>Klik <strong>Deploy (Terapkan)</strong> &gt; <strong>New deployment (Penerapan baru)</strong>.</li>
+              <li>Pilih tipe <strong>Web app</strong>, atur <em>Who has access</em> ke <strong>Anyone (Siapa saja)</strong>.</li>
+              <li>Salin URL Web App dan tempelkan di kotak isian di atas!</li>
+            </ol>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn-test-conn" id="btnTestConnection">Uji Koneksi API</button>
+            <button type="button" class="btn-cancel" id="btnResetToDemo">Reset ke Data Screenshot</button>
+            <button type="submit" class="btn-submit">Simpan Konfigurasi</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
