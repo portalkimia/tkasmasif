@@ -116,7 +116,7 @@
   let groupsData = [];
   let currentFilter = 'all';
   let currentSearch = '';
-  let activeView = 'boardView';
+  let activeView = 'anbkView';
   let activeAnbkProctor = '5'; // default: U05110068-DK7U as shown in Image 1
   let countdownTimer = null;
   let pollIntervalTimer = null;
@@ -943,8 +943,8 @@
         if (activePanel) activePanel.classList.add('active');
 
         const labelMap = {
-          boardView: 'Papan Monitor Token Bersama',
-          anbkView: 'Status Tes Resmi ANBK',
+          anbkView: 'List Status Tes',
+          boardView: 'Monitor Kartu Token',
           sheetView: 'Format Spreadsheet'
         };
         const viewLabel = document.getElementById('currentViewLabel');

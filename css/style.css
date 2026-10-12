@@ -444,6 +444,42 @@ body {
   gap: 12px;
 }
 
+.header-sync-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #f8fafc;
+  border: 1px solid var(--border-color);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.header-sync-tag .sync-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success-green);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+  animation: pulse-dot 2s infinite;
+}
+
+.header-sync-tag .sync-label {
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 0.78rem;
+}
+
+.header-sync-tag strong {
+  color: #0f172a;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.5px;
+}
+
 .btn-refresh,
 .btn-settings,
 .btn-icon-toggle {
@@ -593,38 +629,54 @@ body {
   font-weight: 600;
 }
 
-/* VIEW TABS */
+/* VIEW TABS (ICON-ONLY SIMPLE BUTTONS) */
 .view-mode-tabs {
   display: inline-flex;
   background: #e2e8f0;
   padding: 4px;
   border-radius: var(--radius-md);
   gap: 4px;
+  align-items: center;
 }
 
 .view-tab-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
   border: none;
   background: transparent;
   color: var(--text-muted);
-  padding: 7px 14px;
-  font-size: 0.82rem;
-  font-weight: 600;
+  width: 36px;
+  height: 34px;
+  padding: 0;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+}
+
+.view-tab-btn svg {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.2s ease;
 }
 
 .view-tab-btn:hover {
   color: var(--text-main);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.view-tab-btn:hover svg {
+  transform: scale(1.1);
 }
 
 .view-tab-btn.active {
   background: #ffffff;
-  color: var(--primary-navy);
+  color: var(--anbk-blue);
   box-shadow: var(--shadow-sm);
+}
+
+.view-tab-btn.active svg {
+  stroke-width: 2.3;
 }
 
 /* NOTICE BANNER */
@@ -1639,5 +1691,15 @@ body {
 
   .hide-mobile {
     display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .header-sync-tag .sync-label {
+    display: none;
+  }
+  .header-sync-tag {
+    padding: 5px 8px;
+    font-size: 0.75rem;
   }
 }

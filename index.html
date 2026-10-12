@@ -94,6 +94,13 @@
         </div>
 
         <div class="topbar-right">
+          <!-- WAKTU UPDATE TERAKHIR TOKEN (DI SEBELAH KIRI REFRESH) -->
+          <div class="header-sync-tag" id="headerSyncTag" title="Waktu update token terakhir">
+            <span class="sync-dot"></span>
+            <span class="sync-label">Update:</span>
+            <strong class="sync-time" id="lastUpdatedClock">--:--:--</strong>
+          </div>
+
           <!-- Refresh Now Button -->
           <button class="btn-refresh" id="btnManualRefresh" title="Segarkan Data Sekarang">
             <svg id="refreshIcon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
@@ -127,81 +134,28 @@
             <nav class="breadcrumb-path">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
               <span class="bullet">•</span>
-              <span class="crumb-active" id="currentViewLabel">Papan Monitor Token Bersama</span>
+              <span class="crumb-active" id="currentViewLabel">List Status Tes</span>
             </nav>
           </div>
 
-          <!-- VIEW MODE TABS -->
+          <!-- VIEW MODE TABS (HANYA LOGO / IKON) -->
           <div class="view-mode-tabs">
-            <button class="view-tab-btn active" data-view="boardView">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-              <span>Monitor Kartu Token</span>
+            <button class="view-tab-btn active" data-view="anbkView" title="Tampilan Resmi ANBK (Status Tes)" aria-label="Tampilan Resmi ANBK">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
             </button>
-            <button class="view-tab-btn" data-view="anbkView">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-              <span>Tampilan Resmi ANBK</span>
+            <button class="view-tab-btn" data-view="boardView" title="Monitor Kartu Token" aria-label="Monitor Kartu Token">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
             </button>
-            <button class="view-tab-btn" data-view="sheetView">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-              <span>Format Spreadsheet</span>
+            <button class="view-tab-btn" data-view="sheetView" title="Format Spreadsheet (Google Sheet)" aria-label="Format Spreadsheet">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
             </button>
           </div>
         </div>
 
-        <!-- INFO BANNER: SHARED ROOMS LOGIC -->
-        <div class="shared-notice-banner">
-          <div class="notice-icon">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-          </div>
-          <div class="notice-content">
-            <div class="notice-title">Sistem Berbagi Token Tes ANBK Realtime Antar-Ruang:</div>
-            <div class="notice-tags">
-              <span class="badge-pair group-1">R1 & R2</span>
-              <span class="badge-pair group-2">R3 & R4</span>
-              <span class="badge-pair group-3">R5 & R6</span>
-              <span class="badge-pair group-4">R7</span>
-              <span class="badge-pair group-5">R8 & R9</span>
-              <span class="badge-pair group-6">R10 & R11</span>
-            </div>
-            <div class="notice-sub">Satu token digunakan bersama oleh pasangan ruang di atas. Begitu token dirilis di salah satu ruang, ruang pasangannya otomatis terupdate secara realtime!</div>
-          </div>
-          <div class="last-sync-tag">
-            <span class="sync-dot"></span>
-            <span>Update: <span id="lastUpdatedClock">--:--:--</span></span>
-          </div>
-        </div>
-
-        <!-- FILTER & ACTION TOOLBAR -->
-        <div class="filter-toolbar">
-          <div class="room-filter-chips" id="roomFilterChips">
-            <button class="chip-btn active" data-filter="all">Semua Ruang</button>
-            <button class="chip-btn" data-filter="1">R1 & R2</button>
-            <button class="chip-btn" data-filter="2">R3 & R4</button>
-            <button class="chip-btn" data-filter="3">R5 & R6</button>
-            <button class="chip-btn" data-filter="4">R7</button>
-            <button class="chip-btn" data-filter="5">R8 & R9</button>
-            <button class="chip-btn" data-filter="6">R10 & R11</button>
-          </div>
-
-          <div class="search-box">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="searchInput" placeholder="Cari nama pengawas / ruang / token...">
-          </div>
-        </div>
-
         <!-- ============================================== -->
-        <!-- VIEW 1: MONITOR KARTU TOKEN (BOARD VIEW)      -->
+        <!-- VIEW 1: TAMPILAN RESMI ANBK (STATUS TES TABLE) -->
         <!-- ============================================== -->
-        <div id="boardView" class="view-panel active">
-          <div class="cards-grid" id="tokenCardsGrid">
-            <!-- Populated via JavaScript dynamically -->
-          </div>
-        </div>
-
-        <!-- ============================================== -->
-        <!-- VIEW 2: TAMPILAN RESMI ANBK (STATUS TES TABLE) -->
-        <!-- ============================================== -->
-        <div id="anbkView" class="view-panel">
+        <div id="anbkView" class="view-panel active">
           <div class="anbk-table-card">
             <div class="table-card-toolbar">
               <div class="anbk-account-selector">
@@ -238,6 +192,15 @@
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- VIEW 2: MONITOR KARTU TOKEN (BOARD VIEW)      -->
+        <!-- ============================================== -->
+        <div id="boardView" class="view-panel">
+          <div class="cards-grid" id="tokenCardsGrid">
+            <!-- Populated via JavaScript dynamically -->
           </div>
         </div>
 
