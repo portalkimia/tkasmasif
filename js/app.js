@@ -374,30 +374,20 @@
       }
     }
 
-    // Update Topbar Badges
+    // Update Topbar Display: Proctor ID & Room
+    const proctorIdEl = document.getElementById('activeProctorId');
     const roomBadge = document.getElementById('activeRoomBadge');
-    const roleBadge = document.getElementById('activeRoleBadge');
-    const proctorName = document.getElementById('activeProctorName');
     const avatarBadge = document.getElementById('avatarRoleBadge');
 
-    if (roomBadge) roomBadge.textContent = room.room;
-    if (roleBadge) {
-      roleBadge.textContent = room.roleLabel;
-      roleBadge.className = `role-text-badge ${room.role === 'utama' ? 'role-utama' : 'role-bayangan'}`;
+    if (proctorIdEl) {
+      proctorIdEl.textContent = room.proctorId;
     }
-    if (proctorName) proctorName.textContent = room.name;
+    if (roomBadge) {
+      roomBadge.textContent = room.room.replace('R', 'Ruang ');
+    }
     if (avatarBadge) {
-      avatarBadge.textContent = room.role === 'utama' ? 'U' : 'B';
-      avatarBadge.className = `avatar-badge ${room.role === 'utama' ? 'avatar-utama' : 'avatar-bayangan'}`;
-      avatarBadge.title = `Peran Aktif: ${room.roleLabel}`;
+      avatarBadge.title = `${room.room.replace('R', 'Ruang ')} (${room.name}) - Klik untuk ganti ruangan`;
     }
-
-    // SEMUA PERAN (UTAMA & BAYANGAN) MENGGUNAKAN TAMPILAN RESMI ANBK YANG SAMA
-    const bayanganView = document.getElementById('proctorBayanganView');
-    if (bayanganView) bayanganView.classList.remove('active');
-
-    const viewTabs = document.getElementById('viewModeTabs');
-    if (viewTabs) viewTabs.style.display = 'inline-flex';
 
     // Pastikan panel aktif adalah tampilan resmi ANBK / view saat ini
     const targetPanel = document.getElementById(activeView) || document.getElementById('anbkView');
@@ -406,10 +396,8 @@
       targetPanel.classList.add('active');
     }
 
-    // Set selektor akun ke grup ruangan aktif
+    // Set selektor grup ruangan aktif
     activeAnbkProctor = String(room.groupId);
-    const proctorSelector = document.getElementById('proctorSelector');
-    if (proctorSelector) proctorSelector.value = String(room.groupId);
 
     const labelMap = {
       anbkView: 'List Status Tes',
@@ -419,26 +407,13 @@
     const currentViewLabel = document.getElementById('currentViewLabel');
     if (currentViewLabel) currentViewLabel.textContent = labelMap[activeView] || 'List Status Tes';
 
-    // Kontrol Tombol Penghubung Khusus Proktor Bayangan
-    const quickActions = document.getElementById('bayanganQuickActions');
-    const tableHelper = document.getElementById('bayanganTableHelper');
-    const partnerTag = document.getElementById('bayanganPartnerTag');
-
+    // Kontrol Polling Sinyal: Proktor Utama aktif polling 1.5 detik
     if (room.role === 'bayangan') {
-      // PROKTOR BAYANGAN: Tampilkan 2 tombol tersembunyi untuk terhubung dengan proktor utama
-      if (quickActions) quickActions.style.display = 'inline-flex';
-      if (tableHelper) tableHelper.style.display = 'inline-flex';
-      if (partnerTag && room.partnerRoom) {
-        partnerTag.textContent = `Pasangan: ${room.partnerRoom} (${room.partnerName})`;
+      if (fastPollTimer) {
+        clearInterval(fastPollTimer);
+        fastPollTimer = null;
       }
-
-      // Hentikan fast poll proktor utama jika sebelumnya aktif
-      if (fastPollTimer) clearInterval(fastPollTimer);
     } else {
-      // PROKTOR UTAMA: Sembunyikan tombol bayangan & aktifkan Fast Polling (1.5 detik)
-      if (quickActions) quickActions.style.display = 'none';
-      if (tableHelper) tableHelper.style.display = 'none';
-
       startFastRequestPolling();
     }
 
@@ -447,7 +422,7 @@
     renderGateRooms();
 
     if (isUserAction) {
-      showToast(`Ruangan diatur ke ${room.room} (${room.roleLabel})`, 'success');
+      showToast(`Ruangan diatur ke ${room.room.replace('R', 'Ruang ')} (${room.name})`, 'success');
       fetchLatestTokens(false);
     }
   }
@@ -1573,17 +1548,13 @@
       });
     }
 
-    // Topbar Room Switcher Button & Profile Badge
-    const btnChangeRoom = document.getElementById('btnChangeRoom');
+    // Topbar Profile Badge (Klik untuk Ganti / Pilih Ruangan)
     const userProfileBadge = document.getElementById('userProfileBadge');
-    if (btnChangeRoom) {
-      btnChangeRoom.addEventListener('click', () => openModal('roomSelectGate'));
-    }
     if (userProfileBadge) {
       userProfileBadge.addEventListener('click', () => openModal('roomSelectGate'));
     }
 
-    // Manual Refresh
+    // Manual Refresh Button
     const refreshBtn = document.getElementById('btnManualRefresh');
     if (refreshBtn) {
       refreshBtn.addEventListener('click', () => {
@@ -1591,19 +1562,7 @@
       });
     }
 
-    // Audio Bell Toggle
-    const audioBtn = document.getElementById('btnAudioToggle');
-    if (audioBtn) {
-      audioBtn.addEventListener('click', () => {
-        settings.soundEnabled = !settings.soundEnabled;
-        audioBtn.classList.toggle('active', settings.soundEnabled);
-        localStorage.setItem('anbk_token_settings', JSON.stringify(settings));
-        showToast(`Notifikasi suara: ${settings.soundEnabled ? 'Aktif' : 'Nonaktif'}`, 'info');
-        if (settings.soundEnabled) playTokenAlertSound();
-      });
-    }
-
-    // View Mode Switcher
+    // View Mode Switcher Tabs (Tampilan Resmi ANBK / Monitor Kartu / Spreadsheet)
     const viewButtons = document.querySelectorAll('.view-tab-btn');
     viewButtons.forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1630,18 +1589,7 @@
       });
     });
 
-    // Room Filter Chips
-    const filterChips = document.querySelectorAll('.chip-btn');
-    filterChips.forEach(chip => {
-      chip.addEventListener('click', () => {
-        filterChips.forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        currentFilter = chip.getAttribute('data-filter');
-        renderBoardView();
-      });
-    });
-
-    // Search Input
+    // Search Input (Board View)
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
@@ -1650,25 +1598,60 @@
       });
     }
 
-    // Proctor Selector in ANBK View
-    const proctorSelector = document.getElementById('proctorSelector');
-    if (proctorSelector) {
-      proctorSelector.addEventListener('change', (e) => {
-        activeAnbkProctor = e.target.value;
-        renderAnbkTableView();
+    // Sidebar Navigation: Terhubung Langsung Sesuai Alur Proktor ANBK
+    const navDaftarPeserta = document.getElementById('navDaftarPeserta');
+    if (navDaftarPeserta) {
+      navDaftarPeserta.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (!currentRoomObj) {
+          openModal('roomSelectGate');
+          return;
+        }
+        if (currentRoomObj.role === 'bayangan') {
+          // Proktor Bayangan -> Minta Token Baru ke Proktor Utama
+          sendTokenRequest();
+        } else {
+          // Proktor Utama -> Buka Modal Rilis / Update Token
+          openUpdateModal(currentRoomObj.groupId);
+          showToast(`Anda adalah Proktor Utama (${currentRoomObj.room}). Silakan update / rilis token baru.`, 'info');
+        }
       });
     }
 
-    // Proktor Bayangan: Tombol Penghubung di Topbar & Tabel
-    const btnQuickReqToken = document.getElementById('btnQuickReqToken');
-    const btnTableReqToken = document.getElementById('btnTableReqToken');
-    if (btnQuickReqToken) btnQuickReqToken.addEventListener('click', sendTokenRequest);
-    if (btnTableReqToken) btnTableReqToken.addEventListener('click', sendTokenRequest);
+    const navRequestReset = document.getElementById('navRequestReset');
+    if (navRequestReset) {
+      navRequestReset.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (!currentRoomObj) {
+          openModal('roomSelectGate');
+          return;
+        }
+        if (currentRoomObj.role === 'bayangan') {
+          // Proktor Bayangan -> Form Request Reset Peserta
+          openResetRequestModal();
+        } else {
+          // Proktor Utama -> Beri info bahwa reset langsung diproses di Proktor Browser resmi
+          showToast(`Anda adalah Proktor Utama (${currentRoomObj.room}). Reset login peserta diproses di aplikasi Proktor Browser resmi Anda.`, 'info');
+        }
+      });
+    }
 
-    const btnQuickReqReset = document.getElementById('btnQuickReqReset');
-    const btnTableReqReset = document.getElementById('btnTableReqReset');
-    if (btnQuickReqReset) btnQuickReqReset.addEventListener('click', openResetRequestModal);
-    if (btnTableReqReset) btnTableReqReset.addEventListener('click', openResetRequestModal);
+    // Generic Sidebar Nav Items (Cegah lompat halaman & aktifkan status-tes)
+    document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        const tab = item.getAttribute('data-tab');
+        if (tab === 'status-tes') {
+          e.preventDefault();
+          document.querySelectorAll('.sidebar-nav .nav-item').forEach(i => i.classList.remove('active'));
+          item.classList.add('active');
+          const anbkTabBtn = document.querySelector('.view-tab-btn[data-view="anbkView"]');
+          if (anbkTabBtn) anbkTabBtn.click();
+        } else if (tab !== 'daftar-peserta' && tab !== 'request-reset') {
+          e.preventDefault();
+          showToast(`Menu "${item.querySelector('.nav-label')?.textContent || tab}" dibuka di tampilan proktor.`, 'info');
+        }
+      });
+    });
 
     // Reset Modal Form & Close
     const closeResetModalBtn = document.getElementById('closeResetModalBtn');

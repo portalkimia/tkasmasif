@@ -36,16 +36,15 @@
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
           <span class="nav-label">Status Peserta</span>
         </a>
-        <a href="#" class="nav-item" data-tab="daftar-peserta">
+        <a href="#" class="nav-item" id="navDaftarPeserta" data-tab="daftar-peserta">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
           <span class="nav-label">Daftar Peserta</span>
         </a>
         <a href="#" class="nav-item active" data-tab="status-tes">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
           <span class="nav-label">Status Tes</span>
-          <span class="nav-badge" id="roleBadgeSidebar">UTAMA</span>
         </a>
-        <a href="#" class="nav-item" data-tab="request-reset">
+        <a href="#" class="nav-item" id="navRequestReset" data-tab="request-reset">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="2"/></svg>
           <span class="nav-label">Request Reset Login</span>
         </a>
@@ -107,33 +106,17 @@
             <span class="hide-mobile">Refresh</span>
           </button>
 
-          <!-- Tombol Penghubung Khusus Proktor Bayangan (Hanya Tampil Jika Peran = Proktor Bayangan) -->
-          <div class="bayangan-quick-actions" id="bayanganQuickActions" style="display: none;">
-            <button class="btn-bayangan-req btn-bayangan-token" id="btnQuickReqToken" type="button" title="Kirim sinyal minta token baru ke Proktor Utama">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-1.5 1.5L10 13l-4 4-2 4 4-2 4-4 7.5-7.5M16 5l3 3"/></svg>
-              <span>Minta Token</span>
-            </button>
-            <button class="btn-bayangan-req btn-bayangan-reset" id="btnQuickReqReset" type="button" title="Kirim permintaan reset login peserta ke Proktor Utama">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M18 8l5 5M23 8l-5 5"/></svg>
-              <span>Reset Peserta</span>
-            </button>
-          </div>
-
-          <!-- Tombol Ganti Ruangan -->
-          <button class="btn-change-room" id="btnChangeRoom" title="Pilih / Ganti Ruangan Ujian">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
-            <span class="hide-mobile">Ganti Ruang</span>
-          </button>
-
-          <!-- Current Proctor Profile -->
-          <div class="user-profile" id="userProfileBadge" title="Klik untuk ganti ruangan">
+          <!-- Profil Akun Proktor & Ruangan (Klik untuk Pilih / Ganti Ruangan) -->
+          <div class="user-profile clickable-room-badge" id="userProfileBadge" title="Klik untuk pilih / ganti ruangan">
             <div class="profile-info">
               <span class="user-greeting">
-                <strong id="activeRoomBadge">Ruang 1</strong> &bull; <span id="activeRoleBadge" class="role-text-badge">Proktor Utama</span>
+                <strong id="activeProctorId">U05110068-AV3U</strong>
               </span>
-              <span class="user-school" id="activeProctorName">U. Puja</span>
+              <span class="user-school" id="activeRoomBadge">Ruang 1</span>
             </div>
-            <div class="avatar-badge" id="avatarRoleBadge" title="Peran Aktif">U</div>
+            <div class="avatar-badge" id="avatarRoleBadge" title="Klik untuk ganti ruangan">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            </div>
           </div>
         </div>
       </header>
@@ -166,116 +149,12 @@
           </div>
         </div>
 
-        <!-- ======================================================== -->
-        <!-- VIEW: KHUSUS PROKTOR BAYANGAN (R2, R4, R6, R9, R11)      -->
-        <!-- ======================================================== -->
-        <div id="proctorBayanganView" class="view-panel">
-          <div class="bayangan-dashboard">
-            <!-- Header Kartu Ruang Proktor Bayangan -->
-            <div class="bayangan-status-banner">
-              <div class="banner-badge-col">
-                <span class="role-pill-bayangan">PROKTOR BAYANGAN</span>
-                <h2 id="bayanganRoomTitle">Ruang 2 &bull; U. Nikma</h2>
-                <p id="bayanganPartnerDesc">Pasangan Proktor Utama: <strong>Ruang 1 (U. Puja)</strong> | Akun: <code id="bayanganProctorId">U05110068-AV3U</code></p>
-              </div>
-              <div class="banner-live-col">
-                <span class="live-dot-pulse"></span>
-                <span>Tersinkron Realtime</span>
-              </div>
-            </div>
-
-            <!-- Big Token Showcase untuk Ruang Bayangan -->
-            <div class="bayangan-token-card">
-              <div class="bayangan-token-header">
-                <span class="token-subtitle-text">TOKEN TES AKTIF DARI PROKTOR UTAMA</span>
-                <span class="token-group-pill" id="bayanganGroupPill">Grup 1</span>
-              </div>
-              <div class="bayangan-token-big" id="bayanganTokenDisplay">------</div>
-              <div class="bayangan-token-actions">
-                <button class="btn-copy-token-large" id="btnCopyBayanganToken">
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                  <span>Salin Token Ujian</span>
-                </button>
-              </div>
-              <div class="bayangan-token-footer">
-                <span>Diperbarui: <strong id="bayanganTokenUpdated">--:--:--</strong></span>
-                <span class="status-badge-active">● Siap Digunakan Peserta</span>
-              </div>
-            </div>
-
-            <!-- 2 TOMBOL AKSI UTAMA PROKTOR BAYANGAN -->
-            <div class="bayangan-actions-grid">
-              <!-- Tombol 1: Request Token Terbaru -->
-              <button class="card-action-btn action-request-token" id="btnActionReqToken" type="button">
-                <div class="action-icon-wrap">
-                  <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-                </div>
-                <div class="action-text-wrap">
-                  <h3>Request Token Terbaru</h3>
-                  <p id="actionReqTokenDesc">Kirim sinyal ke Proktor Utama (Ruang 1) untuk segera merilis token tes baru</p>
-                </div>
-                <div class="action-arrow">➔</div>
-              </button>
-
-              <!-- Tombol 2: Request Reset Peserta -->
-              <button class="card-action-btn action-request-reset" id="btnActionReqReset" type="button">
-                <div class="action-icon-wrap">
-                  <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M18 8l5 5M23 8l-5 5"/></svg>
-                </div>
-                <div class="action-text-wrap">
-                  <h3>Request Reset Login Peserta</h3>
-                  <p id="actionReqResetDesc">Kirim data peserta kendala ke Proktor Utama untuk di-reset di proctor browser</p>
-                </div>
-                <div class="action-arrow">➔</div>
-              </button>
-            </div>
-
-            <!-- Riwayat Permintaan Terkini -->
-            <div class="bayangan-history-card">
-              <div class="history-card-header">
-                <h4>Riwayat Permintaan ke Proktor Utama</h4>
-                <span class="badge-history-count" id="historyCountBadge">0 Riwayat</span>
-              </div>
-              <div class="history-list-wrap" id="bayanganHistoryList">
-                <p class="history-empty-text">Belum ada permintaan yang dikirim hari ini.</p>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
         <!-- ============================================== -->
         <!-- VIEW 1: TAMPILAN RESMI ANBK (STATUS TES TABLE) -->
         <!-- ============================================== -->
         <div id="anbkView" class="view-panel active">
           <div class="anbk-table-card">
-            <div class="table-card-toolbar">
-              <div class="anbk-account-selector">
-                <label for="proctorSelector">Pilih Akun Proktor ANBK:</label>
-                <select id="proctorSelector" class="form-select">
-                  <option value="all">Semua Ruangan & Akun (Gabungan)</option>
-                  <option value="1">U05110068-AV3U (R1 & R2 - U. Puja & U. Nikma)</option>
-                  <option value="2">U05110068-BV2U (R3 & R4 - U. Khofifah & U. Tasya)</option>
-                  <option value="3">U05110068-CX7U (R5 & R6 - U. Ady & U. Anita)</option>
-                  <option value="4">U05110068-FZ4U (R7 - U. Laila)</option>
-                  <option value="5">U05110068-DK7U (R8 & R9 - U. Tito & U. Rafly)</option>
-                  <option value="6">U05110068-EK3U (R10 & R11 - U. Yusuf & U. Agus)</option>
-                </select>
-              </div>
-
-              <!-- Bar Pintas Khusus Proktor Bayangan pada Tabel -->
-              <div class="bayangan-table-helper" id="bayanganTableHelper" style="display: none;">
-                <span class="bayangan-partner-tag" id="bayanganPartnerTag">Pasangan: Ruang 1 (U. Puja)</span>
-                <button class="btn-bayangan-req btn-bayangan-token" id="btnTableReqToken" type="button" title="Kirim sinyal minta token baru ke Proktor Utama">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-1.5 1.5L10 13l-4 4-2 4 4-2 4-4 7.5-7.5M16 5l3 3"/></svg>
-                  <span>Minta Token Baru</span>
-                </button>
-                <button class="btn-bayangan-req btn-bayangan-reset" id="btnTableReqReset" type="button" title="Kirim permintaan reset peserta ke Proktor Utama">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M18 8l5 5M23 8l-5 5"/></svg>
-                  <span>Reset Peserta</span>
-                </button>
-              </div>
-            </div>
+            <div class="table-responsive">
 
             <div class="table-responsive">
               <table class="anbk-table">
