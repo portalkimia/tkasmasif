@@ -481,6 +481,7 @@ body {
 }
 
 .btn-refresh,
+.btn-fullscreen,
 .btn-settings,
 .btn-icon-toggle {
   display: inline-flex;
@@ -2309,91 +2310,126 @@ body {
 }
 
 /* ============================================================================
-   INCOMING REQUEST MODAL (VISUAL ALERT PROKTOR UTAMA - TANPA SUARA)
+   INCOMING REQUEST POPUP (COMPACT TOP-RIGHT CORNER NOTIFICATION - NON-BLOCKING)
    ============================================================================ */
 .modal-alert-backdrop {
   z-index: 350;
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  pointer-events: none !important;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.modal-alert-backdrop:not(.show) {
+  display: none !important;
 }
 
 .modal-incoming-dialog {
-  max-width: 520px;
-  width: 92%;
-  border-radius: 18px;
+  pointer-events: auto !important;
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+  bottom: auto !important;
+  left: auto !important;
+  margin: 0 !important;
+  max-width: 380px;
+  width: calc(100vw - 40px);
+  border-radius: 12px;
   overflow: hidden;
   background: #ffffff;
-  border: 2px solid #38bdf8;
-  box-shadow: 0 25px 60px rgba(15, 32, 66, 0.4);
-  animation: alert-card-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1.5px solid #0284c7;
+  box-shadow: 0 14px 34px rgba(15, 32, 66, 0.22), 0 2px 8px rgba(0, 0, 0, 0.08);
+  animation: alert-card-slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes alert-card-in {
-  from { opacity: 0; transform: scale(0.9) translateY(20px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+@keyframes alert-card-slide-in {
+  from { opacity: 0; transform: translateX(50px) scale(0.95); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
 }
 
 .incoming-alert-header {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 20px 24px;
+  gap: 10px;
+  padding: 12px 16px;
   background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
   color: #ffffff;
 }
 
 .alert-icon-ring {
-  width: 46px;
-  height: 46px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.6rem;
+  font-size: 1.15rem;
   flex-shrink: 0;
   animation: bell-swing 1.5s infinite ease-in-out;
 }
 
-@keyframes bell-swing {
-  0%, 100% { transform: rotate(0); }
-  20% { transform: rotate(12deg); }
-  40% { transform: rotate(-12deg); }
-  60% { transform: rotate(6deg); }
-  80% { transform: rotate(-6deg); }
+.incoming-header-text {
+  flex: 1;
+  min-width: 0;
 }
 
 .incoming-header-text h3 {
-  font-size: 1.15rem;
+  font-size: 0.94rem;
   font-weight: 700;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .incoming-header-text p {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   color: #e0f2fe;
 }
 
+.incoming-close-btn {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 1.4rem;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.2s, background 0.2s;
+}
+
+.incoming-close-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.2);
+}
+
 .incoming-alert-body {
-  padding: 24px;
+  padding: 14px 16px;
 }
 
 .incoming-detail-card {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 20px;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
 }
 
 .incoming-detail-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
+  padding: 5px 0;
   border-bottom: 1px solid #f1f5f9;
-  font-size: 0.86rem;
+  font-size: 0.8rem;
 }
 
 .incoming-detail-row:last-child {
@@ -2413,16 +2449,16 @@ body {
 
 .detail-value-highlight {
   font-family: var(--font-mono);
-  font-size: 1.05rem;
-  color: #0284c7;
-  background: #e0f2fe;
-  padding: 3px 8px;
-  border-radius: 6px;
+  font-size: 0.95rem;
+  color: #b91c1c;
+  background: #fee2e2;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 .incoming-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -2431,13 +2467,13 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   background: var(--success-green);
   color: #ffffff;
   border: none;
-  border-radius: 8px;
-  padding: 10px 16px;
-  font-size: 0.88rem;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
   transition: background 0.2s;
@@ -2450,13 +2486,13 @@ body {
 .btn-copy-student-id {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   background: #f1f5f9;
   border: 1px solid #cbd5e1;
   color: #1e293b;
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 0.85rem;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
@@ -2470,9 +2506,9 @@ body {
   background: transparent;
   border: 1px solid #cbd5e1;
   color: #64748b;
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 0.85rem;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
 }

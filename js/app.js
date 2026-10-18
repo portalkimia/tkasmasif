@@ -285,6 +285,7 @@
   let audioContext = null;
   let alertedRequestIds = new Set(); // Prevent duplicate alerts
   let requestHistory = []; // Local request log
+  let lastResetConfirmId = null; // Melacak ID sinyal konfirmasi reset terbaru
 
   // Settings
   let settings = {
@@ -407,15 +408,8 @@
     const currentViewLabel = document.getElementById('currentViewLabel');
     if (currentViewLabel) currentViewLabel.textContent = labelMap[activeView] || 'List Status Tes';
 
-    // Kontrol Polling Sinyal: Proktor Utama aktif polling 1.5 detik
-    if (room.role === 'bayangan') {
-      if (fastPollTimer) {
-        clearInterval(fastPollTimer);
-        fastPollTimer = null;
-      }
-    } else {
-      startFastRequestPolling();
-    }
+    // Kontrol Polling Sinyal: Aktif untuk respon cepat antar perangkat
+    startFastRequestPolling();
 
     renderAnbkTableView();
     closeModal('roomSelectGate');
@@ -427,14 +421,15 @@
     }
   }
 
-  // --- FAST POLLING REQUESTS (SUPER CEPAT 1.5 DETIK UNTUK PROKTOR UTAMA) ---
+  // --- FAST POLLING REQUESTS & SIGNALS (1.5 - 2.5 DETIK RESPONS INSTAN) ---
   function startFastRequestPolling() {
     if (fastPollTimer) clearInterval(fastPollTimer);
 
+    const intervalMs = (currentRoomObj && currentRoomObj.role === 'utama') ? 1500 : 2500;
     fastPollTimer = setInterval(() => {
-      if (!settings.gasUrl || !currentRoomObj || currentRoomObj.role !== 'utama') return;
+      if (!settings.gasUrl || !currentRoomObj) return;
       checkIncomingRequestsFast();
-    }, 1500); // 1.5 Detik untuk respon sinyal instan
+    }, intervalMs);
   }
 
   async function checkIncomingRequestsFast() {
@@ -444,16 +439,21 @@
       if (!response.ok) return;
 
       const resJson = await response.json();
-      if (resJson && resJson.status === 'success' && Array.isArray(resJson.activeRequests)) {
-        handleIncomingRequests(resJson.activeRequests);
+      if (resJson && resJson.status === 'success') {
+        handleIncomingRequests(resJson.activeRequests || [], resJson.resetConfirmation || null);
       }
     } catch (e) {
       // silent network catch
     }
   }
 
-  // --- NATIVE DESKTOP PUSH NOTIFICATION (SILENT, NO ALARM SOUND) ---
+  // --- NATIVE DESKTOP PUSH NOTIFICATION (SILENT, HANYA SAAT TAB DI BELAKANG) ---
   function showDesktopNotification(title, body, tag, onClickCallback) {
+    // HANYA muncul jika browser sedang berada di tab lain atau aplikasi lain
+    if (!document.hidden) {
+      return; // Tab sedang aktif di depan, notifikasi visual web sudah tampil
+    }
+
     if (!('Notification' in window)) return;
 
     if (Notification.permission === 'granted') {
@@ -692,7 +692,7 @@
 
       if (resJson && resJson.status === 'success' && Array.isArray(resJson.data)) {
         handleIncomingData(resJson.data);
-        handleIncomingRequests(resJson.activeRequests || []);
+        handleIncomingRequests(resJson.activeRequests || [], resJson.resetConfirmation || null);
         updateConnectionStatusPill('online', 'LIVE SINKRON');
         if (updateClock) updateClock.textContent = nowTimeStr;
         if (isManual) showToast('Data token & status tes berhasil disinkronkan!', 'success');
@@ -722,6 +722,18 @@
           changedGroupIds.push(local.id);
           local.token = incomingToken;
           local.lastUpdated = incoming.lastUpdated || new Date().toLocaleTimeString('id-ID') + ' WIB';
+
+          // Notifikasi jika Proktor Bayangan menerima rilis token baru untuk ruangannya
+          if (currentRoomObj && currentRoomObj.groupId === local.id && currentRoomObj.role === 'bayangan') {
+            showToast(`🔑 Token Tes Baru Telah Dirilis oleh Proktor Utama: "${incomingToken}"`, 'success');
+            if (document.hidden) {
+              showDesktopNotification(
+                `🔑 Token Baru ANBK Dirilis (${currentRoomObj.partnerRoom || 'Utama'})`,
+                `Proktor Utama telah merilis token baru: ${incomingToken}. Segera bagikan ke peserta.`,
+                'token-update-' + incomingToken
+              );
+            }
+          }
         }
       }
     });
@@ -738,18 +750,16 @@
           setTimeout(() => card.classList.remove('updated-pulse'), 1500);
         }
       });
-
-      showToast(`Token Tes baru telah disinkronkan untuk ${changedGroupIds.length} ruang!`, 'success');
     }
   }
 
-  // --- TARGETED INCOMING REQUESTS HANDLER (STRICT 1-TO-1 TARGETING) ---
-  function handleIncomingRequests(activeRequests) {
+  // --- TARGETED INCOMING REQUESTS & RESET CONFIRMATION HANDLER ---
+  function handleIncomingRequests(activeRequests, resetConfirmation) {
     if (!currentRoomObj) return;
 
     if (currentRoomObj.role === 'utama') {
-      // PROKTOR UTAMA: Only process requests targeted directly to this room and proctorId!
-      const myTargetedRequests = activeRequests.filter(req => {
+      // PROKTOR UTAMA: Hanya proses permintaan yang ditujukan ke ruangan dan proktorId ini!
+      const myTargetedRequests = (activeRequests || []).filter(req => {
         const statusPending = (req.status || 'PENDING') === 'PENDING';
         const targetMatch = req.targetRoom === currentRoomObj.room;
         const proctorMatch = req.proctorId === currentRoomObj.proctorId;
@@ -770,32 +780,37 @@
 
           const notifBody = `${latestReq.fromProctor || 'Proktor Bayangan'}: ${latestReq.detail || 'Mohon segera diproses di Proktor Browser.'}`;
 
-          // Native Browser Desktop Push Notification (Runs even when user is on another app/window)
-          showDesktopNotification(notifTitle, notifBody, latestReq.requestId, () => {
-            openIncomingRequestModal(latestReq);
-          });
+          // Native Browser Desktop Push Notification (Hanya jika tab di belakang)
+          if (document.hidden) {
+            showDesktopNotification(notifTitle, notifBody, latestReq.requestId, () => {
+              openIncomingRequestModal(latestReq);
+            });
+          }
 
-          // Open In-App Visual Alert Modal
+          // Open In-App Visual Alert Modal (Floating di pojok kanan atas)
           openIncomingRequestModal(latestReq);
         }
       }
     } else if (currentRoomObj.role === 'bayangan') {
-      // PROKTOR BAYANGAN: Update request history status
-      let historyChanged = false;
-      requestHistory.forEach(item => {
-        if (item.status === 'PENDING') {
-          const stillActive = activeRequests.some(r => r.requestId === item.id && r.status === 'PENDING');
-          if (!stillActive) {
-            item.status = 'COMPLETED';
-            item.resolvedAt = new Date().toLocaleTimeString('id-ID');
-            historyChanged = true;
+      // PROKTOR BAYANGAN: Cek apakah ada konfirmasi reset login dari Proktor Utama
+      if (resetConfirmation && resetConfirmation.id) {
+        const matchTarget = !resetConfirmation.targetRoom || resetConfirmation.targetRoom === currentRoomObj.room;
+        const matchProctor = !resetConfirmation.proctorId || resetConfirmation.proctorId === currentRoomObj.proctorId;
+
+        if (matchTarget && matchProctor && resetConfirmation.id !== lastResetConfirmId) {
+          lastResetConfirmId = resetConfirmation.id;
+
+          const fromStr = resetConfirmation.fromRoom ? ` (${resetConfirmation.fromRoom})` : '';
+          showToast(`✅ Proktor Utama${fromStr} telah menyelesaikan reset login peserta!`, 'success');
+
+          if (document.hidden) {
+            showDesktopNotification(
+              `✅ Reset Login Peserta Selesai${fromStr}`,
+              `Proktor Utama telah mengonfirmasi bahwa reset login peserta selesai diproses di Proktor Browser.`,
+              resetConfirmation.id
+            );
           }
         }
-      });
-
-      if (historyChanged) {
-        saveRequestHistory();
-        showToast('Permintaan Anda telah diselesaikan oleh Proktor Utama!', 'success');
       }
     }
   }
@@ -820,7 +835,7 @@
     requestHistory.unshift(newReq);
     saveRequestHistory();
 
-    showToast(`Sinyal token baru terkirim ke Proktor Utama (${currentRoomObj.partnerRoom})!`, 'success');
+    showToast(`Permintaan rilis token baru telah terkirim ke Proktor Utama (${currentRoomObj.partnerRoom}). Menunggu rilis token...`, 'info');
 
     // Push to GAS
     if (settings.gasUrl) {
@@ -935,7 +950,7 @@
     if (submitBtn) submitBtn.disabled = false;
 
     closeModal('modalRequestReset');
-    showToast(`Permintaan reset untuk peserta "${studentName}" telah dikirim ke Proktor Utama (${currentRoomObj.partnerRoom})!`, 'success');
+    showToast(`Permintaan reset login untuk peserta "${studentName}" telah terkirim ke Proktor Utama (${currentRoomObj.partnerRoom}). Menunggu konfirmasi reset...`, 'info');
   }
 
   // --- ACTIONS: PROKTOR UTAMA INCOMING REQUEST MODAL ---
@@ -973,7 +988,7 @@
         </div>
         <div class="incoming-detail-row">
           <span class="detail-label">Jenis Permintaan</span>
-          <span class="detail-value" style="color: ${isReset ? '#ea580c' : '#0284c7'};">${isReset ? 'RESET LOGIN PESERTA' : 'RILIS / UPDATE TOKEN'}</span>
+          <span class="detail-value" style="color: ${isReset ? '#ea580c' : '#0284c7'}; font-weight: 700;">${isReset ? 'RESET LOGIN PESERTA' : 'RILIS / UPDATE TOKEN'}</span>
         </div>
         ${studentNameMatch ? `
           <div class="incoming-detail-row">
@@ -989,7 +1004,7 @@
         ` : ''}
         <div class="incoming-detail-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">
           <span class="detail-label">Rincian / Kendala:</span>
-          <span class="detail-value" style="text-align: left; font-size: 0.82rem; font-weight: 500; color: #334155;">${escapeHtml(req.detail)}</span>
+          <span class="detail-value" style="text-align: left; font-size: 0.8rem; font-weight: 500; color: #334155;">${escapeHtml(req.detail)}</span>
         </div>
       `;
     }
@@ -1001,18 +1016,18 @@
         const textToCopy = studentNameMatch || studentIdMatch || req.detail;
         buttonsHtml += `
           <button class="btn-copy-student-id" onclick="window.anbkApp.copyText('${escapeJs(textToCopy)}', 'Nama Peserta Tersalin!')">
-            📋 Salin Nama Peserta
+            📋 Salin Nama
           </button>
         `;
         buttonsHtml += `
-          <button class="btn-resolve-request" onclick="window.anbkApp.resolveRequest('${escapeJs(req.requestId)}')">
+          <button class="btn-resolve-request" onclick="window.anbkApp.confirmResetFromUtama('${escapeJs(req.requestId)}')">
             ✓ Tandai Sudah Di-reset
           </button>
         `;
       } else {
         buttonsHtml += `
           <button class="btn-resolve-request" onclick="window.anbkApp.openUpdateModal(${currentRoomObj ? currentRoomObj.groupId : 1}); window.anbkApp.resolveRequest('${escapeJs(req.requestId)}');">
-            🔑 Update & Rilis Token Sekarang
+            🔑 Update & Rilis Token
           </button>
         `;
       }
@@ -1027,6 +1042,40 @@
     }
 
     openModal('incomingRequestModal');
+  }
+
+  async function confirmResetFromUtama(requestId) {
+    closeModal('incomingRequestModal');
+    if (!currentRoomObj || currentRoomObj.role !== 'utama') return;
+
+    const partner = currentRoomObj.partnerRoom || 'Proktor Bayangan';
+    showToast(`Mengirim sinyal konfirmasi reset login ke ${partner}...`, 'info');
+
+    if (settings.gasUrl) {
+      try {
+        const reqParam = requestId ? `&requestId=${encodeURIComponent(requestId)}` : '';
+        const url = `${settings.gasUrl}${settings.gasUrl.includes('?') ? '&' : '?'}action=confirm_reset` +
+          `&fromRoom=${encodeURIComponent(currentRoomObj.room)}` +
+          `&targetRoom=${encodeURIComponent(currentRoomObj.partnerRoom || '')}` +
+          `&proctorId=${encodeURIComponent(currentRoomObj.proctorId)}` +
+          `&detail=${encodeURIComponent('Reset login peserta telah selesai diproses oleh Proktor Utama.')}` +
+          `${reqParam}` +
+          `&_t=${Date.now()}`;
+
+        const resp = await fetch(url, { method: 'GET', cache: 'no-store' });
+        const resJson = await resp.json();
+        if (resJson && resJson.status === 'success') {
+          showToast(`✓ Sinyal konfirmasi reset berhasil dikirim ke ${partner}!`, 'success');
+        } else {
+          showToast(`Sinyal reset terkirim ke ${partner}.`, 'success');
+        }
+      } catch (err) {
+        console.warn('Gagal confirm reset ke GAS:', err);
+        showToast(`Sinyal konfirmasi reset terkirim secara lokal ke ${partner}.`, 'info');
+      }
+    } else {
+      showToast(`✓ Sinyal konfirmasi reset terkirim ke ${partner}!`, 'success');
+    }
   }
 
   async function resolveRequest(requestId) {
@@ -1598,6 +1647,40 @@
       });
     }
 
+    // Fullscreen Toggle
+    const btnFullscreen = document.getElementById('btnFullscreenToggle');
+    const expandIcon = document.getElementById('fullscreenExpandIcon');
+    const compressIcon = document.getElementById('fullscreenCompressIcon');
+    const fullscreenText = document.getElementById('fullscreenBtnText');
+
+    if (btnFullscreen) {
+      btnFullscreen.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(err => {
+            console.warn('Gagal fullscreen:', err);
+          });
+        } else {
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          }
+        }
+      });
+
+      document.addEventListener('fullscreenchange', () => {
+        const isFs = !!document.fullscreenElement;
+        if (expandIcon) expandIcon.style.display = isFs ? 'none' : 'inline-block';
+        if (compressIcon) compressIcon.style.display = isFs ? 'inline-block' : 'none';
+        if (fullscreenText) fullscreenText.textContent = isFs ? 'Keluar' : 'Layar Penuh';
+        btnFullscreen.title = isFs ? 'Keluar dari Layar Penuh' : 'Mode Layar Penuh (Fullscreen)';
+      });
+    }
+
+    // Close Incoming Request Alert Modal Button
+    const btnCloseIncoming = document.getElementById('btnCloseIncomingModal');
+    if (btnCloseIncoming) {
+      btnCloseIncoming.addEventListener('click', () => closeModal('incomingRequestModal'));
+    }
+
     // Sidebar Navigation: Terhubung Langsung Sesuai Alur Proktor ANBK
     const navDaftarPeserta = document.getElementById('navDaftarPeserta');
     if (navDaftarPeserta) {
@@ -1630,8 +1713,8 @@
           // Proktor Bayangan -> Form Request Reset Peserta
           openResetRequestModal();
         } else {
-          // Proktor Utama -> Beri info bahwa reset langsung diproses di Proktor Browser resmi
-          showToast(`Anda adalah Proktor Utama (${currentRoomObj.room}). Reset login peserta diproses di aplikasi Proktor Browser resmi Anda.`, 'info');
+          // Proktor Utama -> Beri sinyal konfirmasi ke Proktor Bayangan bahwa reset login sudah selesai
+          confirmResetFromUtama();
         }
       });
     }
@@ -1737,6 +1820,7 @@
     copyToken,
     copyText,
     resolveRequest,
+    confirmResetFromUtama,
     closeIncomingModal: () => closeModal('incomingRequestModal')
   };
 

@@ -72,16 +72,14 @@ function doGet(e) {
       return createJsonResponse(result);
     }
 
-    // Action: Tandai Permintaan Selesai oleh Proktor Utama
-    if (action === 'resolve_request') {
+    // Action: Tandai Permintaan Selesai / Konfirmasi Reset Login oleh Proktor Utama
+    if (action === 'resolve_request' || action === 'confirm_reset') {
       const requestId = params.requestId || '';
-      if (!requestId) {
-        return createJsonResponse({
-          status: 'error',
-          message: 'Parameter requestId wajib diisi.'
-        });
-      }
-      const result = resolveRequestInSheet(requestId);
+      const fromRoom = params.fromRoom || '';
+      const targetRoom = params.targetRoom || '';
+      const proctorId = params.proctorId || '';
+      const detail = params.detail || 'Reset login peserta telah selesai diproses.';
+      const result = confirmResetInSheet(fromRoom, targetRoom, proctorId, detail, requestId);
       return createJsonResponse(result);
     }
 
@@ -90,16 +88,43 @@ function doGet(e) {
       const targetRoomFilter = params.targetRoom || '';
       const proctorIdFilter = params.proctorId || '';
       const activeRequests = getActiveRequestsFast(targetRoomFilter, proctorIdFilter);
+
+      let resetConfirmation = null;
+      try {
+        const cache = CacheService.getScriptCache();
+        const rawConfirm = targetRoomFilter ? cache.get('CONFIRM_RESET_' + String(targetRoomFilter).trim()) : null;
+        if (rawConfirm) {
+          resetConfirmation = JSON.parse(rawConfirm);
+        } else if (proctorIdFilter) {
+          const rawPid = cache.get('CONFIRM_RESET_PID_' + String(proctorIdFilter).trim());
+          if (rawPid) resetConfirmation = JSON.parse(rawPid);
+        }
+      } catch (e) {}
+
       return createJsonResponse({
         status: 'success',
-        activeRequests: activeRequests
+        activeRequests: activeRequests,
+        resetConfirmation: resetConfirmation
       });
     }
 
     // Default action: Ambil data semua token + antrian permintaan aktif (PENDING)
     const targetRoomFilter = params.targetRoom || '';
+    const proctorIdFilter = params.proctorId || '';
     const tokenData = getTokensData();
-    const activeRequests = getActiveRequestsFast(targetRoomFilter, '');
+    const activeRequests = getActiveRequestsFast(targetRoomFilter, proctorIdFilter);
+
+    let resetConfirmation = null;
+    try {
+      const cache = CacheService.getScriptCache();
+      const rawConfirm = targetRoomFilter ? cache.get('CONFIRM_RESET_' + String(targetRoomFilter).trim()) : null;
+      if (rawConfirm) {
+        resetConfirmation = JSON.parse(rawConfirm);
+      } else if (proctorIdFilter) {
+        const rawPid = cache.get('CONFIRM_RESET_PID_' + String(proctorIdFilter).trim());
+        if (rawPid) resetConfirmation = JSON.parse(rawPid);
+      }
+    } catch (e) {}
 
     return createJsonResponse({
       status: 'success',
@@ -107,7 +132,8 @@ function doGet(e) {
       serverTime: Utilities.formatDate(new Date(), 'Asia/Jakarta', 'dd/MM/yyyy HH:mm:ss') + ' WIB',
       totalGroups: tokenData.length,
       data: tokenData,
-      activeRequests: activeRequests
+      activeRequests: activeRequests,
+      resetConfirmation: resetConfirmation
     });
 
   } catch (error) {
@@ -499,6 +525,44 @@ function resolveRequestInSheet(requestId) {
   return {
     status: 'success',
     message: 'Permintaan ditandai selesai.'
+  };
+}
+
+/**
+ * Mengirimkan sinyal konfirmasi reset selesai dari Proktor Utama ke Proktor Bayangan (Fast Cache)
+ */
+function confirmResetInSheet(fromRoom, targetRoom, proctorId, detail, requestId) {
+  if (requestId) {
+    resolveRequestInSheet(requestId);
+  }
+
+  const timestamp = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'HH:mm:ss');
+  const confirmObj = {
+    id: 'RST-CONF-' + Date.now(),
+    fromRoom: fromRoom || '',
+    targetRoom: targetRoom || '',
+    proctorId: proctorId || '',
+    detail: detail || 'Reset login peserta telah selesai diproses.',
+    timestamp: timestamp + ' WIB',
+    timeMs: Date.now()
+  };
+
+  try {
+    const cache = CacheService.getScriptCache();
+    if (targetRoom) {
+      cache.put('CONFIRM_RESET_' + String(targetRoom).trim(), JSON.stringify(confirmObj), 21600);
+    }
+    if (proctorId) {
+      cache.put('CONFIRM_RESET_PID_' + String(proctorId).trim(), JSON.stringify(confirmObj), 21600);
+    }
+  } catch (e) {
+    console.warn('Cache confirm_reset error:', e);
+  }
+
+  return {
+    status: 'success',
+    message: 'Reset login berhasil dikonfirmasi ke ' + (targetRoom || 'Proktor Bayangan'),
+    confirmation: confirmObj
   };
 }
 
