@@ -43,7 +43,7 @@
         <a href="#" class="nav-item active" data-tab="status-tes">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
           <span class="nav-label">Status Tes</span>
-          <span class="nav-badge">LIVE</span>
+          <span class="nav-badge" id="roleBadgeSidebar">UTAMA</span>
         </a>
         <a href="#" class="nav-item" data-tab="request-reset">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="2"/></svg>
@@ -72,7 +72,7 @@
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>
         </button>
-        <div class="timer-countdown" id="timerCountdown">
+        <div class="timer-countdown" id="timerCountdown" title="Hitung mundur sinkronisasi realtime">
           <svg viewBox="0 0 36 36" class="circular-chart">
             <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
             <path class="circle-progress" id="countdownCircle" stroke-dasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
@@ -107,27 +107,29 @@
             <span class="hide-mobile">Refresh</span>
           </button>
 
-          <!-- Audio Bell Toggle -->
-          <button class="btn-icon-toggle active" id="btnAudioToggle" title="Suara Notifikasi Token Baru">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            <span class="audio-status-dot"></span>
+          <!-- Tombol Ganti Ruangan -->
+          <button class="btn-change-room" id="btnChangeRoom" title="Pilih / Ganti Ruangan Ujian">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+            <span class="hide-mobile">Ganti Ruang</span>
           </button>
 
-          <!-- Current Proctor Profile (From Image 1: Hi, U05110068-DK7U / GLDTKASMA) -->
-          <div class="user-profile">
+          <!-- Current Proctor Profile -->
+          <div class="user-profile" id="userProfileBadge" title="Klik untuk ganti ruangan">
             <div class="profile-info">
-              <span class="user-greeting">Hi, <strong id="activeProctorId">U05110068-DK7U</strong></span>
-              <span class="user-school" id="activeSchoolCode">GLDTKASMA</span>
+              <span class="user-greeting">
+                <strong id="activeRoomBadge">Ruang 1</strong> &bull; <span id="activeRoleBadge" class="role-text-badge">Proktor Utama</span>
+              </span>
+              <span class="user-school" id="activeProctorName">U. Puja</span>
             </div>
-            <div class="avatar-badge" title="Akun Proktor Aktif">U</div>
+            <div class="avatar-badge" id="avatarRoleBadge" title="Peran Aktif">U</div>
           </div>
         </div>
       </header>
 
       <!-- CONTENT BODY -->
       <div class="content-wrapper">
-        <!-- BREADCRUMB & VIEW SWITCHER -->
-        <div class="page-header-row">
+        <!-- BREADCRUMB & VIEW SWITCHER (UNTUK PROKTOR UTAMA) -->
+        <div class="page-header-row" id="pageHeaderRow">
           <div class="breadcrumb-container">
             <span class="breadcrumb-title">Status Tes</span>
             <span class="breadcrumb-divider">|</span>
@@ -139,7 +141,7 @@
           </div>
 
           <!-- VIEW MODE TABS (HANYA LOGO / IKON) -->
-          <div class="view-mode-tabs">
+          <div class="view-mode-tabs" id="viewModeTabs">
             <button class="view-tab-btn active" data-view="anbkView" title="Tampilan Resmi ANBK (Status Tes)" aria-label="Tampilan Resmi ANBK">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
             </button>
@@ -149,6 +151,84 @@
             <button class="view-tab-btn" data-view="sheetView" title="Format Spreadsheet (Google Sheet)" aria-label="Format Spreadsheet">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
             </button>
+          </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- VIEW: KHUSUS PROKTOR BAYANGAN (R2, R4, R6, R9, R11)      -->
+        <!-- ======================================================== -->
+        <div id="proctorBayanganView" class="view-panel">
+          <div class="bayangan-dashboard">
+            <!-- Header Kartu Ruang Proktor Bayangan -->
+            <div class="bayangan-status-banner">
+              <div class="banner-badge-col">
+                <span class="role-pill-bayangan">PROKTOR BAYANGAN</span>
+                <h2 id="bayanganRoomTitle">Ruang 2 &bull; U. Nikma</h2>
+                <p id="bayanganPartnerDesc">Pasangan Proktor Utama: <strong>Ruang 1 (U. Puja)</strong> | Akun: <code id="bayanganProctorId">U05110068-AV3U</code></p>
+              </div>
+              <div class="banner-live-col">
+                <span class="live-dot-pulse"></span>
+                <span>Tersinkron Realtime</span>
+              </div>
+            </div>
+
+            <!-- Big Token Showcase untuk Ruang Bayangan -->
+            <div class="bayangan-token-card">
+              <div class="bayangan-token-header">
+                <span class="token-subtitle-text">TOKEN TES AKTIF DARI PROKTOR UTAMA</span>
+                <span class="token-group-pill" id="bayanganGroupPill">Grup 1</span>
+              </div>
+              <div class="bayangan-token-big" id="bayanganTokenDisplay">------</div>
+              <div class="bayangan-token-actions">
+                <button class="btn-copy-token-large" id="btnCopyBayanganToken">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  <span>Salin Token Ujian</span>
+                </button>
+              </div>
+              <div class="bayangan-token-footer">
+                <span>Diperbarui: <strong id="bayanganTokenUpdated">--:--:--</strong></span>
+                <span class="status-badge-active">● Siap Digunakan Peserta</span>
+              </div>
+            </div>
+
+            <!-- 2 TOMBOL AKSI UTAMA PROKTOR BAYANGAN -->
+            <div class="bayangan-actions-grid">
+              <!-- Tombol 1: Request Token Terbaru -->
+              <button class="card-action-btn action-request-token" id="btnActionReqToken" type="button">
+                <div class="action-icon-wrap">
+                  <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                </div>
+                <div class="action-text-wrap">
+                  <h3>Request Token Terbaru</h3>
+                  <p id="actionReqTokenDesc">Kirim sinyal ke Proktor Utama (Ruang 1) untuk segera merilis token tes baru</p>
+                </div>
+                <div class="action-arrow">➔</div>
+              </button>
+
+              <!-- Tombol 2: Request Reset Peserta -->
+              <button class="card-action-btn action-request-reset" id="btnActionReqReset" type="button">
+                <div class="action-icon-wrap">
+                  <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M18 8l5 5M23 8l-5 5"/></svg>
+                </div>
+                <div class="action-text-wrap">
+                  <h3>Request Reset Login Peserta</h3>
+                  <p id="actionReqResetDesc">Kirim data peserta kendala ke Proktor Utama untuk di-reset di proctor browser</p>
+                </div>
+                <div class="action-arrow">➔</div>
+              </button>
+            </div>
+
+            <!-- Riwayat Permintaan Terkini -->
+            <div class="bayangan-history-card">
+              <div class="history-card-header">
+                <h4>Riwayat Permintaan ke Proktor Utama</h4>
+                <span class="badge-history-count" id="historyCountBadge">0 Riwayat</span>
+              </div>
+              <div class="history-list-wrap" id="bayanganHistoryList">
+                <p class="history-empty-text">Belum ada permintaan yang dikirim hari ini.</p>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -166,7 +246,7 @@
                   <option value="2">U05110068-BV2U (R3 & R4 - U. Khofifah & U. Tasya)</option>
                   <option value="3">U05110068-CX7U (R5 & R6 - U. Ady & U. Anita)</option>
                   <option value="4">U05110068-FZ4U (R7 - U. Laila)</option>
-                  <option value="5" selected>U05110068-DK7U (R8 & R9 - U. Tito & U. Rafly) [Screenshot]</option>
+                  <option value="5">U05110068-DK7U (R8 & R9 - U. Tito & U. Rafly)</option>
                   <option value="6">U05110068-EK3U (R10 & R11 - U. Yusuf & U. Agus)</option>
                 </select>
               </div>
@@ -236,6 +316,124 @@
       </div> <!-- /.content-wrapper -->
     </main>
   </div> <!-- /.app-layout -->
+
+  <!-- ======================================================== -->
+  <!-- MODAL: PEMILIHAN RUANGAN AWAL (GATE SELECTION)           -->
+  <!-- ======================================================== -->
+  <div class="modal-backdrop modal-gate" id="roomSelectGate" aria-hidden="true">
+    <div class="modal-dialog modal-gate-dialog">
+      <div class="gate-header">
+        <div class="gate-logo-wrap">
+          <img src="img/anbk-logo.png" alt="Logo ANBK" class="gate-logo-img">
+        </div>
+        <h2>PILIH RUANGAN UJIAN ANBK</h2>
+        <p>Pilih ruangan Anda untuk menyesuaikan peran dan menyambungkan sinyal koordinasi dengan ruang pasangan</p>
+      </div>
+
+      <div class="gate-body">
+        <div class="gate-rooms-grid" id="gateRoomsGrid">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+
+      <div class="gate-footer">
+        <span class="gate-note">💡 Peran dan ruangan ini disimpan di peramban Anda dan dapat diubah kapan saja via menu atas.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: PROKTOR BAYANGAN -> REQUEST RESET LOGIN PESERTA  -->
+  <!-- ======================================================== -->
+  <div class="modal-backdrop" id="modalRequestReset" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <h3>Request Reset Login Peserta</h3>
+          <p id="resetModalTargetSubtitle">Target: Proktor Utama (Ruang 1 - U. Puja)</p>
+        </div>
+        <button class="modal-close-btn" id="closeResetModalBtn">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <form id="formRequestReset">
+          <div class="form-group">
+            <label for="resetStudentId"><strong>Username / No Peserta ANBK:</strong> <span class="text-danger">*</span></label>
+            <input 
+              type="text" 
+              id="resetStudentId" 
+              class="form-control" 
+              placeholder="Contoh: U05110068-0012" 
+              autocomplete="off"
+              required
+            >
+            <small class="form-hint">Salin atau ketikkan username peserta yang tertera di kartu login.</small>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-half">
+              <label for="resetStudentName">Nama Peserta (Opsional):</label>
+              <input type="text" id="resetStudentName" class="form-control" placeholder="Contoh: Ahmad Fauzi">
+            </div>
+            <div class="form-group col-half">
+              <label for="resetComputerNo">No Meja / Komputer:</label>
+              <input type="text" id="resetComputerNo" class="form-control" placeholder="Contoh: PC-05">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="resetProblemType"><strong>Kendala / Alasan Reset:</strong></label>
+            <select id="resetProblemType" class="form-select">
+              <option value="Logout / Keluar Sendiri">Logout / Keluar Sendiri dari Tes</option>
+              <option value="Komputer Hang / Error">Komputer Hang / Freeze / Error</option>
+              <option value="Pindah Komputer / Cadangan">Pindah ke Komputer Cadangan</option>
+              <option value="Mati Lampu / Restart PC">Komputer Restart / Mati Lampu</option>
+              <option value="Lainnya">Kendala Lainnya</option>
+            </select>
+          </div>
+
+          <div class="notice-box-warning">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>Permintaan ini HANYA akan dikirimkan ke Proktor Utama pasangannya dan muncul sebagai popup langsung.</span>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn-cancel" id="cancelResetModalBtn">Batal</button>
+            <button type="submit" class="btn-submit" id="submitResetRequestBtn">
+              <span id="btnSubmitResetText">Kirim Permintaan Reset</span>
+              <span class="spinner" id="submitResetSpinner" style="display: none;"></span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: PROKTOR UTAMA -> POPUP ALARM PERMINTAAN MASUK    -->
+  <!-- ======================================================== -->
+  <div class="modal-backdrop modal-alert-backdrop" id="incomingRequestModal" aria-hidden="true">
+    <div class="modal-dialog modal-incoming-dialog">
+      <div class="incoming-alert-header">
+        <div class="alert-icon-ring" id="incomingAlertIcon">🔔</div>
+        <div class="incoming-header-text">
+          <h3 id="incomingAlertTitle">Permintaan Masuk dari Ruang Pasangan</h3>
+          <p id="incomingAlertSubtitle">Diterima pada --:--:-- WIB</p>
+        </div>
+      </div>
+
+      <div class="incoming-alert-body">
+        <!-- Box Konten Request -->
+        <div class="incoming-detail-card" id="incomingDetailCard">
+          <!-- Populated dynamically via JS -->
+        </div>
+
+        <div class="incoming-actions" id="incomingActionsRow">
+          <!-- Action buttons populated dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ============================================== -->
   <!-- MODAL: UPDATE TOKEN                           -->
@@ -340,10 +538,10 @@
             </div>
 
             <div class="form-group col-half">
-              <label for="soundNotificationSelect"><strong>Suara Notifikasi Token:</strong></label>
-              <select id="soundNotificationSelect" class="form-select">
-                <option value="true" selected>Aktif (Bunyi 'Chime' saat Token Berubah)</option>
-                <option value="false">Nonaktif (Hening)</option>
+              <label for="desktopNotifSelect"><strong>Push / Desktop Notification:</strong></label>
+              <select id="desktopNotifSelect" class="form-select">
+                <option value="true" selected>Aktif (Notifikasi Windows saat Tab di Belakang)</option>
+                <option value="false">Nonaktif (Hanya Popup di dalam Web)</option>
               </select>
             </div>
           </div>
@@ -352,21 +550,23 @@
           <div id="connectionTestResult" class="connection-test-banner" style="display: none;"></div>
 
           <div class="gas-quick-guide">
-            <h4>💡 Cara Mendapatkan URL Web App Google Apps Script:</h4>
+            <h4>💡 Cara Kerja Sistem Terarah:</h4>
+            <p style="font-size: 0.8rem; color: #475569; margin-bottom: 6px;">
+              Notifikasi permintaan dari Proktor Bayangan hanya akan muncul di layar Proktor Utama yang memegang akun Proktor ID yang sama.
+            </p>
             <ol>
-              <li>Buat Google Spreadsheet baru di Google Drive Anda.</li>
-              <li>Buka menu <strong>Ekstensi (Extensions)</strong> &gt; <strong>Apps Script</strong>.</li>
-              <li>Salin seluruh kode dari file <code>gas/Code.gs</code> di repo ini, lalu tempel ke editor Apps Script.</li>
-              <li>Jalankan fungsi <code>setupSheet</code> sekali untuk mengisi data awal ruang &amp; warna.</li>
-              <li>Klik <strong>Deploy (Terapkan)</strong> &gt; <strong>New deployment (Penerapan baru)</strong>.</li>
-              <li>Pilih tipe <strong>Web app</strong>, atur <em>Who has access</em> ke <strong>Anyone (Siapa saja)</strong>.</li>
-              <li>Salin URL Web App dan tempelkan di kotak isian di atas!</li>
+              <li>R1 & R2 &bull; Proktor ID: <code>U05110068-AV3U</code></li>
+              <li>R3 & R4 &bull; Proktor ID: <code>U05110068-BV2U</code></li>
+              <li>R5 & R6 &bull; Proktor ID: <code>U05110068-CX7U</code></li>
+              <li>R7 &bull; Proktor ID: <code>U05110068-FZ4U</code></li>
+              <li>R8 & R9 &bull; Proktor ID: <code>U05110068-DK7U</code></li>
+              <li>R10 & R11 &bull; Proktor ID: <code>U05110068-EK3U</code></li>
             </ol>
           </div>
 
           <div class="modal-actions">
             <button type="button" class="btn-test-conn" id="btnTestConnection">Uji Koneksi API</button>
-            <button type="button" class="btn-cancel" id="btnResetToDemo">Reset ke Data Screenshot</button>
+            <button type="button" class="btn-cancel" id="btnResetToDemo">Reset ke Data Default</button>
             <button type="submit" class="btn-submit">Simpan Konfigurasi</button>
           </div>
         </form>
