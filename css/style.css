@@ -1911,6 +1911,44 @@ body {
   line-height: 1.35;
 }
 
+.gate-auth-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.gate-auth-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+}
+
+.gate-auth-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.gate-auth-val {
+  font-family: var(--font-mono);
+  color: #0f172a;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.gate-auth-val.gate-auth-pass {
+  color: #0369a1;
+  background: #e0f2fe;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 800;
+}
+
 .gate-card-bottom {
   margin-top: auto;
   display: flex;

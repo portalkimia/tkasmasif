@@ -331,6 +331,10 @@
 
       const isCurrentSelected = currentRoomCode === r.room ? 'selected' : '';
 
+      // Ambil password dari grup jika sudah termuat
+      const grp = groupsData.find(g => g.id === r.groupId);
+      const pass = (grp && grp.password) ? grp.password : r.password;
+
       return `
         <div class="gate-room-card ${isCurrentSelected}" data-room="${r.room}">
           <div class="gate-card-top">
@@ -339,8 +343,17 @@
           </div>
           <div class="gate-proctor-name">${escapeHtml(r.name)}</div>
           <div class="gate-partner-info">${partnerText}</div>
+          <div class="gate-auth-box">
+            <div class="gate-auth-item">
+              <span class="gate-auth-label">Proktor ID:</span>
+              <strong class="gate-auth-val">${escapeHtml(r.proctorId)}</strong>
+            </div>
+            <div class="gate-auth-item">
+              <span class="gate-auth-label">Password:</span>
+              <strong class="gate-auth-val gate-auth-pass">${escapeHtml(pass)}</strong>
+            </div>
+          </div>
           <div class="gate-card-bottom">
-            <span class="gate-proctor-id-tag">ID: ${escapeHtml(r.proctorId)}</span>
             <span class="gate-group-tag ${r.colorClass}">${escapeHtml(r.groupLabel)}</span>
           </div>
         </div>
@@ -1238,20 +1251,12 @@
             <button class="btn-anbk-set btn-set-grey" onclick="window.anbkApp.openUpdateModal(${g.id})">Set</button>
           </td>
           <td>
-            <span class="anbk-token-badge">${escapeHtml(g.token)}</span>
-          </td>
-          <td>
-            ${g.rooms.map(r => `<span class="room-pill-tag">${r}</span>`).join('')}
-          </td>
-          <td>
-            <button class="btn-copy-token" style="padding: 4px 10px; font-size: 0.75rem;" onclick="window.anbkApp.copyToken('${escapeJs(g.token)}', this)">
-              Salin
-            </button>
+            <span class="anbk-token-badge" style="cursor: pointer;" title="Klik untuk salin token" onclick="window.anbkApp.copyToken('${escapeJs(g.token)}', this)">${escapeHtml(g.token)}</span>
           </td>
         </tr>
       `;
 
-      // Row 2 (Sesi 2 - matching screenshot with Rilis Token button)
+      // Row 2 (Sesi 2 - matching official ANBK screenshot with Rilis Token button)
       const row2 = `
         <tr>
           <td>${index * 2 + 2}</td>
@@ -1264,14 +1269,6 @@
           </td>
           <td>
             <button class="btn-anbk-rilis" onclick="window.anbkApp.openUpdateModal(${g.id})">Rilis Token</button>
-          </td>
-          <td>
-            ${g.rooms.map(r => `<span class="room-pill-tag">${r}</span>`).join('')}
-          </td>
-          <td>
-            <button class="btn-update-token" style="padding: 4px 10px; font-size: 0.75rem;" onclick="window.anbkApp.openUpdateModal(${g.id})">
-              Update
-            </button>
           </td>
         </tr>
       `;
