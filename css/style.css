@@ -2489,3 +2489,78 @@ body {
     min-width: 220px;
   }
 }
+
+/* ============================================================================
+   TOMBOL PENGHUBUNG KHUSUS PROKTOR BAYANGAN (HALAMAN SAMA DG PROKTOR UTAMA)
+   ============================================================================ */
+.bayangan-quick-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-bayangan-req {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  user-select: none;
+}
+
+.btn-bayangan-token {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+
+.btn-bayangan-token:hover {
+  background: #0284c7;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(2, 132, 199, 0.25);
+}
+
+.btn-bayangan-reset {
+  background: #ffedd5;
+  color: #c2410c;
+  border-color: #fed7aa;
+}
+
+.btn-bayangan-reset:hover {
+  background: #ea580c;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(234, 88, 12, 0.25);
+}
+
+.bayangan-table-helper {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  margin-left: auto;
+}
+
+.bayangan-partner-tag {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+@media (max-width: 900px) {
+  .bayangan-table-helper {
+    margin-left: 0;
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+}

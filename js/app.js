@@ -3,10 +3,10 @@
  * ANBK REALTIME TOKEN MONITOR & SHARE - CLIENT APPLICATION SCRIPT
  * ============================================================================
  * Fitur:
- * 1. Gate Pemilihan Ruangan Awal (R1 - R11) dengan Penyimpanan Preferensi
- * 2. Diferensiasi Peran: Proktor Utama (Kontrol ANBK) vs Proktor Bayangan
- * 3. Dashboard Khusus Proktor Bayangan (Token Besar + 2 Tombol Sinyal)
- * 4. Sistem Sinyal Request Token & Request Reset Login Terarah (1-to-1)
+ * 1. Tampilan Proktor Bayangan Sama Persis dengan Proktor Utama (Tampilan Resmi ANBK)
+ * 2. Tombol Penghubung Khusus Proktor Bayangan (Minta Token Baru & Reset Peserta)
+ * 3. Form Reset Login Cukup Nama Saja yang Wajib (Nomor Ujian Opsional)
+ * 4. Polling Super Cepat (1.5 Detik via CacheService) untuk Notifikasi Instan
  * 5. Push Notifikasi Desktop Native Peramban (Hanya Visual, Tanpa Bunyi Alarm)
  * 6. Kompatibel Penuh dengan Backend Google Apps Script (GAS) & GitHub Pages
  * ============================================================================
@@ -279,11 +279,12 @@
   let activeView = 'anbkView';
   let activeAnbkProctor = '1';
   let countdownTimer = null;
+  let fastPollTimer = null; // High-speed request polling (1.5 detik)
   let remainingSeconds = 5;
   let isFetching = false;
   let audioContext = null;
   let alertedRequestIds = new Set(); // Prevent duplicate alerts
-  let requestHistory = []; // Local request log for proctor bayangan
+  let requestHistory = []; // Local request log
 
   // Settings
   let settings = {
@@ -364,7 +365,7 @@
     currentRoomObj = room;
     localStorage.setItem('anbk_selected_room', room.room);
 
-    // Request desktop notification permission if supported and user interacted
+    // Request desktop notification permission if supported
     if (isUserAction && 'Notification' in window && Notification.permission === 'default') {
       try {
         Notification.requestPermission().catch(console.warn);
@@ -373,7 +374,7 @@
       }
     }
 
-    // Update Topbar UI
+    // Update Topbar Badges
     const roomBadge = document.getElementById('activeRoomBadge');
     const roleBadge = document.getElementById('activeRoleBadge');
     const proctorName = document.getElementById('activeProctorName');
@@ -391,72 +392,57 @@
       avatarBadge.title = `Peran Aktif: ${room.roleLabel}`;
     }
 
-    // Role-Based View Switch
+    // SEMUA PERAN (UTAMA & BAYANGAN) MENGGUNAKAN TAMPILAN RESMI ANBK YANG SAMA
     const bayanganView = document.getElementById('proctorBayanganView');
+    if (bayanganView) bayanganView.classList.remove('active');
+
     const viewTabs = document.getElementById('viewModeTabs');
-    const currentViewLabel = document.getElementById('currentViewLabel');
+    if (viewTabs) viewTabs.style.display = 'inline-flex';
 
-    if (room.role === 'bayangan') {
-      // PROKTOR BAYANGAN VIEW
+    // Pastikan panel aktif adalah tampilan resmi ANBK / view saat ini
+    const targetPanel = document.getElementById(activeView) || document.getElementById('anbkView');
+    if (targetPanel) {
       document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
-      if (bayanganView) bayanganView.classList.add('active');
-      if (viewTabs) viewTabs.style.display = 'none';
-      if (currentViewLabel) currentViewLabel.textContent = 'Dashboard Proktor Bayangan';
-
-      // Update Shadow Dashboard Labels
-      const bTitle = document.getElementById('bayanganRoomTitle');
-      const bPartner = document.getElementById('bayanganPartnerDesc');
-      const bGroupPill = document.getElementById('bayanganGroupPill');
-      const bProctorId = document.getElementById('bayanganProctorId');
-      const aReqTokenDesc = document.getElementById('actionReqTokenDesc');
-      const aReqResetDesc = document.getElementById('actionReqResetDesc');
-
-      if (bTitle) bTitle.textContent = `${room.room} • ${room.name}`;
-      if (bPartner) {
-        bPartner.innerHTML = `Pasangan Proktor Utama: <strong>${room.partnerRoom} (${room.partnerName})</strong> | Akun: <code>${room.proctorId}</code>`;
-      }
-      if (bGroupPill) {
-        bGroupPill.textContent = room.groupLabel;
-        bGroupPill.className = `token-group-pill badge-pair ${room.colorClass}`;
-      }
-      if (bProctorId) bProctorId.textContent = room.proctorId;
-
-      if (aReqTokenDesc) {
-        aReqTokenDesc.textContent = `Kirim sinyal ke Proktor Utama (${room.partnerRoom}) untuk segera merilis token tes baru`;
-      }
-      if (aReqResetDesc) {
-        aReqResetDesc.textContent = `Kirim data peserta kendala ke Proktor Utama (${room.partnerRoom}) untuk di-reset di proctor browser`;
-      }
-
-      updateBayanganTokenDisplay();
-      renderBayanganHistory();
-    } else {
-      // PROKTOR UTAMA VIEW
-      if (bayanganView) bayanganView.classList.remove('active');
-      if (viewTabs) viewTabs.style.display = 'inline-flex';
-
-      // Show default or last active view
-      const targetPanel = document.getElementById(activeView) || document.getElementById('anbkView');
-      if (targetPanel) {
-        document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
-        targetPanel.classList.add('active');
-      }
-
-      // Auto-set the proctor selector in ANBK view to this room's group
-      activeAnbkProctor = String(room.groupId);
-      const proctorSelector = document.getElementById('proctorSelector');
-      if (proctorSelector) proctorSelector.value = String(room.groupId);
-
-      const labelMap = {
-        anbkView: 'List Status Tes',
-        boardView: 'Monitor Kartu Token',
-        sheetView: 'Format Spreadsheet'
-      };
-      if (currentViewLabel) currentViewLabel.textContent = labelMap[activeView] || 'List Status Tes';
-
-      renderAnbkTableView();
+      targetPanel.classList.add('active');
     }
 
+    // Set selektor akun ke grup ruangan aktif
+    activeAnbkProctor = String(room.groupId);
+    const proctorSelector = document.getElementById('proctorSelector');
+    if (proctorSelector) proctorSelector.value = String(room.groupId);
+
+    const labelMap = {
+      anbkView: 'List Status Tes',
+      boardView: 'Monitor Kartu Token',
+      sheetView: 'Format Spreadsheet'
+    };
+    const currentViewLabel = document.getElementById('currentViewLabel');
+    if (currentViewLabel) currentViewLabel.textContent = labelMap[activeView] || 'List Status Tes';
+
+    // Kontrol Tombol Penghubung Khusus Proktor Bayangan
+    const quickActions = document.getElementById('bayanganQuickActions');
+    const tableHelper = document.getElementById('bayanganTableHelper');
+    const partnerTag = document.getElementById('bayanganPartnerTag');
+
+    if (room.role === 'bayangan') {
+      // PROKTOR BAYANGAN: Tampilkan 2 tombol tersembunyi untuk terhubung dengan proktor utama
+      if (quickActions) quickActions.style.display = 'inline-flex';
+      if (tableHelper) tableHelper.style.display = 'inline-flex';
+      if (partnerTag && room.partnerRoom) {
+        partnerTag.textContent = `Pasangan: ${room.partnerRoom} (${room.partnerName})`;
+      }
+
+      // Hentikan fast poll proktor utama jika sebelumnya aktif
+      if (fastPollTimer) clearInterval(fastPollTimer);
+    } else {
+      // PROKTOR UTAMA: Sembunyikan tombol bayangan & aktifkan Fast Polling (1.5 detik)
+      if (quickActions) quickActions.style.display = 'none';
+      if (tableHelper) tableHelper.style.display = 'none';
+
+      startFastRequestPolling();
+    }
+
+    renderAnbkTableView();
     closeModal('roomSelectGate');
     renderGateRooms();
 
@@ -466,15 +452,29 @@
     }
   }
 
-  function updateBayanganTokenDisplay() {
-    if (!currentRoomObj || currentRoomObj.role !== 'bayangan') return;
-    const group = groupsData.find(g => g.id === currentRoomObj.groupId);
-    if (!group) return;
+  // --- FAST POLLING REQUESTS (SUPER CEPAT 1.5 DETIK UNTUK PROKTOR UTAMA) ---
+  function startFastRequestPolling() {
+    if (fastPollTimer) clearInterval(fastPollTimer);
 
-    const tokenDisplay = document.getElementById('bayanganTokenDisplay');
-    const tokenUpdated = document.getElementById('bayanganTokenUpdated');
-    if (tokenDisplay) tokenDisplay.textContent = group.token || '------';
-    if (tokenUpdated) tokenUpdated.textContent = group.lastUpdated || '--:--:--';
+    fastPollTimer = setInterval(() => {
+      if (!settings.gasUrl || !currentRoomObj || currentRoomObj.role !== 'utama') return;
+      checkIncomingRequestsFast();
+    }, 1500); // 1.5 Detik untuk respon sinyal instan
+  }
+
+  async function checkIncomingRequestsFast() {
+    try {
+      const url = `${settings.gasUrl}${settings.gasUrl.includes('?') ? '&' : '?'}action=check_requests&targetRoom=${encodeURIComponent(currentRoomObj.room)}&proctorId=${encodeURIComponent(currentRoomObj.proctorId)}&_t=${Date.now()}`;
+      const response = await fetch(url, { method: 'GET', cache: 'no-store' });
+      if (!response.ok) return;
+
+      const resJson = await response.json();
+      if (resJson && resJson.status === 'success' && Array.isArray(resJson.activeRequests)) {
+        handleIncomingRequests(resJson.activeRequests);
+      }
+    } catch (e) {
+      // silent network catch
+    }
   }
 
   // --- NATIVE DESKTOP PUSH NOTIFICATION (SILENT, NO ALARM SOUND) ---
@@ -690,7 +690,6 @@
     const updateClock = document.getElementById('lastUpdatedClock');
     const nowTimeStr = new Date().toLocaleTimeString('id-ID');
 
-    // If no Google Apps Script URL is set yet, run simulation mode
     if (!settings.gasUrl) {
       setTimeout(() => {
         if (updateClock) updateClock.textContent = nowTimeStr;
@@ -755,7 +754,6 @@
     if (hasChanges) {
       saveCachedTokens();
       renderAllViews();
-      updateBayanganTokenDisplay();
       playTokenAlertSound();
 
       changedGroupIds.forEach(gid => {
@@ -807,11 +805,10 @@
         }
       }
     } else if (currentRoomObj.role === 'bayangan') {
-      // PROKTOR BAYANGAN: Check if my sent requests are completed
+      // PROKTOR BAYANGAN: Update request history status
       let historyChanged = false;
       requestHistory.forEach(item => {
         if (item.status === 'PENDING') {
-          // If the request is no longer present in activeRequests (meaning it was resolved/marked COMPLETED)
           const stillActive = activeRequests.some(r => r.requestId === item.id && r.status === 'PENDING');
           if (!stillActive) {
             item.status = 'COMPLETED';
@@ -823,7 +820,6 @@
 
       if (historyChanged) {
         saveRequestHistory();
-        renderBayanganHistory();
         showToast('Permintaan Anda telah diselesaikan oleh Proktor Utama!', 'success');
       }
     }
@@ -832,9 +828,6 @@
   // --- ACTIONS: PROKTOR BAYANGAN REQUESTS ---
   async function sendTokenRequest() {
     if (!currentRoomObj || currentRoomObj.role !== 'bayangan') return;
-
-    const btn = document.getElementById('btnActionReqToken');
-    if (btn) btn.disabled = true;
 
     const reqId = 'REQ-TOK-' + Date.now();
     const nowStr = new Date().toLocaleTimeString('id-ID');
@@ -851,7 +844,6 @@
 
     requestHistory.unshift(newReq);
     saveRequestHistory();
-    renderBayanganHistory();
 
     showToast(`Sinyal token baru terkirim ke Proktor Utama (${currentRoomObj.partnerRoom})!`, 'success');
 
@@ -873,10 +865,6 @@
         console.warn('Gagal kirim request token ke GAS:', e);
       }
     }
-
-    setTimeout(() => {
-      if (btn) btn.disabled = false;
-    }, 1000);
   }
 
   function openResetRequestModal() {
@@ -887,11 +875,16 @@
       subtitle.textContent = `Target: Proktor Utama (${currentRoomObj.partnerRoom} - ${currentRoomObj.partnerName})`;
     }
 
-    const studentInput = document.getElementById('resetStudentId');
-    if (studentInput) {
-      studentInput.value = '';
-      setTimeout(() => studentInput.focus(), 100);
+    const nameInput = document.getElementById('resetStudentName');
+    const idInput = document.getElementById('resetStudentId');
+    const pcInput = document.getElementById('resetComputerNo');
+
+    if (nameInput) {
+      nameInput.value = '';
+      setTimeout(() => nameInput.focus(), 100);
     }
+    if (idInput) idInput.value = '';
+    if (pcInput) pcInput.value = '';
 
     openModal('modalRequestReset');
   }
@@ -900,21 +893,23 @@
     e.preventDefault();
     if (!currentRoomObj || currentRoomObj.role !== 'bayangan') return;
 
-    const studentIdInput = document.getElementById('resetStudentId');
     const studentNameInput = document.getElementById('resetStudentName');
+    const studentIdInput = document.getElementById('resetStudentId');
     const pcNoInput = document.getElementById('resetComputerNo');
     const problemSelect = document.getElementById('resetProblemType');
     const submitBtn = document.getElementById('submitResetRequestBtn');
     const submitSpinner = document.getElementById('submitResetSpinner');
     const submitText = document.getElementById('btnSubmitResetText');
 
-    const studentId = studentIdInput.value.trim().toUpperCase();
+    // HANYA NAMA PESERTA YANG WAJIB
     const studentName = studentNameInput ? studentNameInput.value.trim() : '';
+    const studentId = studentIdInput ? studentIdInput.value.trim().toUpperCase() : '';
     const pcNo = pcNoInput ? pcNoInput.value.trim() : '';
     const problem = problemSelect ? problemSelect.value : 'Logout / Keluar Sendiri';
 
-    if (!studentId) {
-      showToast('Username / No Peserta wajib diisi!', 'error');
+    if (!studentName) {
+      showToast('Nama Peserta wajib diisi!', 'error');
+      if (studentNameInput) studentNameInput.focus();
       return;
     }
 
@@ -922,7 +917,7 @@
     if (submitText) submitText.textContent = 'Mengirim...';
     if (submitBtn) submitBtn.disabled = true;
 
-    const detailText = `No Peserta: ${studentId} | Nama: ${studentName || '-'} | PC: ${pcNo || '-'} | Kendala: ${problem}`;
+    const detailText = `Nama: ${studentName}${pcNo ? ' | PC: ' + pcNo : ''}${studentId ? ' | No: ' + studentId : ''} | Kendala: ${problem}`;
     const reqId = 'REQ-RST-' + Date.now();
     const nowStr = new Date().toLocaleTimeString('id-ID');
 
@@ -930,6 +925,7 @@
       id: reqId,
       time: nowStr,
       type: 'RESET',
+      studentName: studentName,
       studentId: studentId,
       detail: detailText,
       status: 'PENDING',
@@ -939,7 +935,6 @@
 
     requestHistory.unshift(newReq);
     saveRequestHistory();
-    renderBayanganHistory();
 
     // Push to GAS
     if (settings.gasUrl) {
@@ -965,45 +960,7 @@
     if (submitBtn) submitBtn.disabled = false;
 
     closeModal('modalRequestReset');
-    showToast(`Permintaan reset untuk peserta ${studentId} telah dikirim ke Proktor Utama (${currentRoomObj.partnerRoom})!`, 'success');
-  }
-
-  function renderBayanganHistory() {
-    const listWrap = document.getElementById('bayanganHistoryList');
-    const badge = document.getElementById('historyCountBadge');
-    if (!listWrap) return;
-
-    if (badge) badge.textContent = `${requestHistory.length} Riwayat`;
-
-    if (requestHistory.length === 0) {
-      listWrap.innerHTML = '<p class="history-empty-text">Belum ada permintaan yang dikirim hari ini.</p>';
-      return;
-    }
-
-    listWrap.innerHTML = requestHistory.map(item => {
-      const isReset = item.type === 'RESET';
-      const typeBadgeClass = isReset ? 'reset' : 'token';
-      const typeLabel = isReset ? 'Reset Login' : 'Token Baru';
-      const isPending = item.status === 'PENDING';
-      const statusBadge = isPending
-        ? '<span class="history-status-badge pending">⏳ Menunggu Proktor Utama</span>'
-        : '<span class="history-status-badge completed">✓ Selesai Diproses</span>';
-
-      return `
-        <div class="history-item">
-          <div class="history-item-left">
-            <span class="history-type-tag ${typeBadgeClass}">${typeLabel}</span>
-            <div>
-              <div class="history-desc">${escapeHtml(item.detail)}</div>
-              <div class="history-time">Terkirim ke ${escapeHtml(item.targetRoom || 'Proktor Utama')} pukul ${escapeHtml(item.time)}</div>
-            </div>
-          </div>
-          <div class="history-item-right">
-            ${statusBadge}
-          </div>
-        </div>
-      `;
-    }).join('');
+    showToast(`Permintaan reset untuk peserta "${studentName}" telah dikirim ke Proktor Utama (${currentRoomObj.partnerRoom})!`, 'success');
   }
 
   // --- ACTIONS: PROKTOR UTAMA INCOMING REQUEST MODAL ---
@@ -1022,13 +979,15 @@
       subtitle.textContent = `Dari: ${req.fromRoom} (${req.fromProctor || 'Proktor Bayangan'}) • ${req.timestamp || new Date().toLocaleTimeString('id-ID')} WIB`;
     }
 
-    // Extract student ID if reset
+    // Extract student Name and ID if reset
+    let studentNameMatch = '';
     let studentIdMatch = '';
     if (isReset && req.detail) {
-      const match = req.detail.match(/No Peserta:\s*([^|]+)/i);
-      if (match && match[1]) {
-        studentIdMatch = match[1].trim();
-      }
+      const nameMatch = req.detail.match(/Nama:\s*([^|]+)/i);
+      if (nameMatch && nameMatch[1]) studentNameMatch = nameMatch[1].trim();
+
+      const idMatch = req.detail.match(/No:\s*([^|]+)/i) || req.detail.match(/No Peserta:\s*([^|]+)/i);
+      if (idMatch && idMatch[1] && idMatch[1].trim() !== '-') studentIdMatch = idMatch[1].trim();
     }
 
     if (detailCard) {
@@ -1041,10 +1000,16 @@
           <span class="detail-label">Jenis Permintaan</span>
           <span class="detail-value" style="color: ${isReset ? '#ea580c' : '#0284c7'};">${isReset ? 'RESET LOGIN PESERTA' : 'RILIS / UPDATE TOKEN'}</span>
         </div>
+        ${studentNameMatch ? `
+          <div class="incoming-detail-row">
+            <span class="detail-label">Nama Peserta</span>
+            <span class="detail-value detail-value-highlight">${escapeHtml(studentNameMatch)}</span>
+          </div>
+        ` : ''}
         ${studentIdMatch ? `
           <div class="incoming-detail-row">
-            <span class="detail-label">Username Peserta</span>
-            <span class="detail-value detail-value-highlight">${escapeHtml(studentIdMatch)}</span>
+            <span class="detail-label">No Peserta / ID</span>
+            <span class="detail-value">${escapeHtml(studentIdMatch)}</span>
           </div>
         ` : ''}
         <div class="incoming-detail-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">
@@ -1058,13 +1023,12 @@
       let buttonsHtml = '';
 
       if (isReset) {
-        if (studentIdMatch) {
-          buttonsHtml += `
-            <button class="btn-copy-student-id" onclick="window.anbkApp.copyText('${escapeJs(studentIdMatch)}', 'Username Peserta Tersalin!')">
-              📋 Salin No Peserta
-            </button>
-          `;
-        }
+        const textToCopy = studentNameMatch || studentIdMatch || req.detail;
+        buttonsHtml += `
+          <button class="btn-copy-student-id" onclick="window.anbkApp.copyText('${escapeJs(textToCopy)}', 'Nama Peserta Tersalin!')">
+            📋 Salin Nama Peserta
+          </button>
+        `;
         buttonsHtml += `
           <button class="btn-resolve-request" onclick="window.anbkApp.resolveRequest('${escapeJs(req.requestId)}')">
             ✓ Tandai Sudah Di-reset
@@ -1386,7 +1350,6 @@
       group.lastUpdated = new Date().toLocaleTimeString('id-ID') + ' WIB';
       saveCachedTokens();
       renderAllViews();
-      updateBayanganTokenDisplay();
       playTokenAlertSound();
     }
 
@@ -1539,7 +1502,6 @@
     groupsData = JSON.parse(JSON.stringify(DEFAULT_GROUPS));
     saveCachedTokens();
     renderAllViews();
-    updateBayanganTokenDisplay();
     showToast('Data berhasil direset kembali ke susunan awal.', 'info');
   }
 
@@ -1697,27 +1659,16 @@
       });
     }
 
-    // Proktor Bayangan Action Buttons
-    const btnActionReqToken = document.getElementById('btnActionReqToken');
-    if (btnActionReqToken) {
-      btnActionReqToken.addEventListener('click', sendTokenRequest);
-    }
+    // Proktor Bayangan: Tombol Penghubung di Topbar & Tabel
+    const btnQuickReqToken = document.getElementById('btnQuickReqToken');
+    const btnTableReqToken = document.getElementById('btnTableReqToken');
+    if (btnQuickReqToken) btnQuickReqToken.addEventListener('click', sendTokenRequest);
+    if (btnTableReqToken) btnTableReqToken.addEventListener('click', sendTokenRequest);
 
-    const btnActionReqReset = document.getElementById('btnActionReqReset');
-    if (btnActionReqReset) {
-      btnActionReqReset.addEventListener('click', openResetRequestModal);
-    }
-
-    const btnCopyBayangan = document.getElementById('btnCopyBayanganToken');
-    if (btnCopyBayangan) {
-      btnCopyBayangan.addEventListener('click', function () {
-        if (!currentRoomObj) return;
-        const group = groupsData.find(g => g.id === currentRoomObj.groupId);
-        if (group) {
-          copyToken(group.token, this);
-        }
-      });
-    }
+    const btnQuickReqReset = document.getElementById('btnQuickReqReset');
+    const btnTableReqReset = document.getElementById('btnTableReqReset');
+    if (btnQuickReqReset) btnQuickReqReset.addEventListener('click', openResetRequestModal);
+    if (btnTableReqReset) btnTableReqReset.addEventListener('click', openResetRequestModal);
 
     // Reset Modal Form & Close
     const closeResetModalBtn = document.getElementById('closeResetModalBtn');
@@ -1733,7 +1684,6 @@
       modal.addEventListener('click', (e) => {
         if (e.target === modal) {
           if (modal.id === 'roomSelectGate') {
-            // Only allow closing gate if a room is already selected
             if (currentRoomCode) closeModal(modal.id);
           } else {
             closeModal(modal.id);

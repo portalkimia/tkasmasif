@@ -85,10 +85,21 @@ function doGet(e) {
       return createJsonResponse(result);
     }
 
+    // Action: Fast Check Requests (Super Cepat via CacheService)
+    if (action === 'check_requests') {
+      const targetRoomFilter = params.targetRoom || '';
+      const proctorIdFilter = params.proctorId || '';
+      const activeRequests = getActiveRequestsFast(targetRoomFilter, proctorIdFilter);
+      return createJsonResponse({
+        status: 'success',
+        activeRequests: activeRequests
+      });
+    }
+
     // Default action: Ambil data semua token + antrian permintaan aktif (PENDING)
     const targetRoomFilter = params.targetRoom || '';
     const tokenData = getTokensData();
-    const activeRequests = getActiveRequests(targetRoomFilter);
+    const activeRequests = getActiveRequestsFast(targetRoomFilter, '');
 
     return createJsonResponse({
       status: 'success',
@@ -296,33 +307,66 @@ function updateTokenInSheet(groupId, newToken, updatedBy) {
 }
 
 /**
- * Membuat entri permintaan baru di sheet REQUEST_LOG
+ * Membuat entri permintaan baru di sheet REQUEST_LOG & CacheService (Super Cepat)
  */
 function createRequestInSheet(fromRoom, targetRoom, proctorId, groupId, type, detail, fromProctor) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(REQUEST_SHEET_NAME);
-  if (!sheet) {
-    setupRequestSheet();
-    sheet = ss.getSheetByName(REQUEST_SHEET_NAME);
-  }
-
   const requestId = 'REQ-' + new Date().getTime() + '-' + fromRoom;
   const timestamp = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'dd/MM/yyyy HH:mm:ss');
 
-  // Kolom: [1] REQUEST_ID, [2] WAKTU, [3] DARI_RUANG, [4] TARGET_RUANG, [5] PROKTOR_ID, [6] GROUP_ID, [7] TIPE, [8] DETAIL, [9] STATUS, [10] DARI_PROKTOR, [11] DISELESAIKAN_WAKTU
-  sheet.appendRow([
-    requestId,
-    timestamp,
-    fromRoom,
-    targetRoom,
-    proctorId,
-    groupId,
-    type,
-    detail,
-    'PENDING',
-    fromProctor,
-    ''
-  ]);
+  const reqObj = {
+    requestId: requestId,
+    timestamp: timestamp,
+    fromRoom: fromRoom,
+    targetRoom: targetRoom,
+    proctorId: proctorId,
+    groupId: groupId,
+    type: type,
+    detail: detail,
+    status: 'PENDING',
+    fromProctor: fromProctor
+  };
+
+  // 1. Simpan langsung ke CacheService agar langsung terbaca dalam hitungan milidetik
+  try {
+    const cache = CacheService.getScriptCache();
+    let cached = cache.get('ACTIVE_REQUESTS_CACHE');
+    let list = [];
+    if (cached) {
+      try { list = JSON.parse(cached); } catch (e) { list = []; }
+    }
+    list.unshift(reqObj);
+    if (list.length > 40) list = list.slice(0, 40);
+    cache.put('ACTIVE_REQUESTS_CACHE', JSON.stringify(list), 21600);
+  } catch (err) {
+    console.warn('Cache write error:', err);
+  }
+
+  // 2. Simpan permanen ke Sheet
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(REQUEST_SHEET_NAME);
+    if (!sheet) {
+      setupRequestSheet();
+      sheet = ss.getSheetByName(REQUEST_SHEET_NAME);
+    }
+
+    // Kolom: [1] REQUEST_ID, [2] WAKTU, [3] DARI_RUANG, [4] TARGET_RUANG, [5] PROKTOR_ID, [6] GROUP_ID, [7] TIPE, [8] DETAIL, [9] STATUS, [10] DARI_PROKTOR, [11] DISELESAIKAN_WAKTU
+    sheet.appendRow([
+      requestId,
+      timestamp,
+      fromRoom,
+      targetRoom,
+      proctorId,
+      groupId,
+      type,
+      detail,
+      'PENDING',
+      fromProctor,
+      ''
+    ]);
+  } catch (sheetErr) {
+    console.warn('Sheet append error:', sheetErr);
+  }
 
   return {
     status: 'success',
@@ -333,7 +377,40 @@ function createRequestInSheet(fromRoom, targetRoom, proctorId, groupId, type, de
 }
 
 /**
- * Mengambil daftar permintaan yang masih PENDING
+ * Mengambil daftar permintaan yang masih PENDING secara cepat (Cache-First)
+ */
+function getActiveRequestsFast(targetRoomFilter, proctorIdFilter) {
+  let list = [];
+  try {
+    const cache = CacheService.getScriptCache();
+    const cached = cache.get('ACTIVE_REQUESTS_CACHE');
+    if (cached) {
+      list = JSON.parse(cached);
+    }
+  } catch (e) {
+    list = [];
+  }
+
+  // Jika cache kosong, ambil dari Sheet dan isi cache
+  if (!list || list.length === 0) {
+    list = getActiveRequests('');
+    try {
+      const cache = CacheService.getScriptCache();
+      cache.put('ACTIVE_REQUESTS_CACHE', JSON.stringify(list), 21600);
+    } catch (e) {}
+  }
+
+  // Filter permintaan aktif yang cocok
+  return list.filter(function (row) {
+    const isPending = (row.status || 'PENDING') === 'PENDING';
+    const matchTarget = !targetRoomFilter || String(row.targetRoom).trim() === String(targetRoomFilter).trim();
+    const matchProctor = !proctorIdFilter || String(row.proctorId).trim() === String(proctorIdFilter).trim();
+    return isPending && matchTarget && matchProctor;
+  });
+}
+
+/**
+ * Mengambil daftar permintaan yang masih PENDING dari Sheet
  */
 function getActiveRequests(targetRoomFilter) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -353,7 +430,6 @@ function getActiveRequests(targetRoomFilter) {
     if (status === 'PENDING') {
       const targetRoom = String(row[3] || '').trim();
 
-      // Filter jika targetRoomFilter dispesifikasi
       if (!targetRoomFilter || targetRoomFilter === targetRoom) {
         activeList.push({
           requestId: row[0],
@@ -375,34 +451,54 @@ function getActiveRequests(targetRoomFilter) {
 }
 
 /**
- * Menandai permintaan sebagai COMPLETED
+ * Menandai permintaan sebagai COMPLETED di Cache & Sheet
  */
 function resolveRequestInSheet(requestId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(REQUEST_SHEET_NAME);
-  if (!sheet) return { status: 'error', message: 'Sheet request tidak ditemukan.' };
-
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return { status: 'error', message: 'Tidak ada data request.' };
-
-  const ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
-  const nowStr = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'dd/MM/yyyy HH:mm:ss');
-
-  for (let i = 0; i < ids.length; i++) {
-    if (String(ids[i][0]).trim() === String(requestId).trim()) {
-      const rowNum = i + 2;
-      sheet.getRange(rowNum, 9).setValue('COMPLETED'); // Kolom 9 = STATUS
-      sheet.getRange(rowNum, 11).setValue(nowStr);     // Kolom 11 = WAKTU SELESAI
-      return {
-        status: 'success',
-        message: 'Permintaan ' + requestId + ' berhasil ditandai selesai.'
-      };
+  // 1. Update di CacheService secara instan
+  try {
+    const cache = CacheService.getScriptCache();
+    const cached = cache.get('ACTIVE_REQUESTS_CACHE');
+    if (cached) {
+      let list = JSON.parse(cached);
+      list.forEach(function (item) {
+        if (String(item.requestId).trim() === String(requestId).trim()) {
+          item.status = 'COMPLETED';
+        }
+      });
+      cache.put('ACTIVE_REQUESTS_CACHE', JSON.stringify(list), 21600);
     }
+  } catch (cacheErr) {}
+
+  // 2. Update di Sheet
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(REQUEST_SHEET_NAME);
+    if (!sheet) return { status: 'error', message: 'Sheet request tidak ditemukan.' };
+
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return { status: 'error', message: 'Tidak ada data request.' };
+
+    const ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    const nowStr = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'dd/MM/yyyy HH:mm:ss');
+
+    for (let i = 0; i < ids.length; i++) {
+      if (String(ids[i][0]).trim() === String(requestId).trim()) {
+        const rowNum = i + 2;
+        sheet.getRange(rowNum, 9).setValue('COMPLETED');
+        sheet.getRange(rowNum, 11).setValue(nowStr);
+        return {
+          status: 'success',
+          message: 'Permintaan ' + requestId + ' berhasil ditandai selesai.'
+        };
+      }
+    }
+  } catch (sheetErr) {
+    console.warn('Sheet resolve error:', sheetErr);
   }
 
   return {
-    status: 'error',
-    message: 'Request ID tidak ditemukan: ' + requestId
+    status: 'success',
+    message: 'Permintaan ditandai selesai.'
   };
 }
 

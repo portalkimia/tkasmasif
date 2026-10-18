@@ -107,6 +107,18 @@
             <span class="hide-mobile">Refresh</span>
           </button>
 
+          <!-- Tombol Penghubung Khusus Proktor Bayangan (Hanya Tampil Jika Peran = Proktor Bayangan) -->
+          <div class="bayangan-quick-actions" id="bayanganQuickActions" style="display: none;">
+            <button class="btn-bayangan-req btn-bayangan-token" id="btnQuickReqToken" type="button" title="Kirim sinyal minta token baru ke Proktor Utama">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-1.5 1.5L10 13l-4 4-2 4 4-2 4-4 7.5-7.5M16 5l3 3"/></svg>
+              <span>Minta Token</span>
+            </button>
+            <button class="btn-bayangan-req btn-bayangan-reset" id="btnQuickReqReset" type="button" title="Kirim permintaan reset login peserta ke Proktor Utama">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M18 8l5 5M23 8l-5 5"/></svg>
+              <span>Reset Peserta</span>
+            </button>
+          </div>
+
           <!-- Tombol Ganti Ruangan -->
           <button class="btn-change-room" id="btnChangeRoom" title="Pilih / Ganti Ruangan Ujian">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
@@ -250,6 +262,19 @@
                   <option value="6">U05110068-EK3U (R10 & R11 - U. Yusuf & U. Agus)</option>
                 </select>
               </div>
+
+              <!-- Bar Pintas Khusus Proktor Bayangan pada Tabel -->
+              <div class="bayangan-table-helper" id="bayanganTableHelper" style="display: none;">
+                <span class="bayangan-partner-tag" id="bayanganPartnerTag">Pasangan: Ruang 1 (U. Puja)</span>
+                <button class="btn-bayangan-req btn-bayangan-token" id="btnTableReqToken" type="button" title="Kirim sinyal minta token baru ke Proktor Utama">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-1.5 1.5L10 13l-4 4-2 4 4-2 4-4 7.5-7.5M16 5l3 3"/></svg>
+                  <span>Minta Token Baru</span>
+                </button>
+                <button class="btn-bayangan-req btn-bayangan-reset" id="btnTableReqReset" type="button" title="Kirim permintaan reset peserta ke Proktor Utama">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M18 8l5 5M23 8l-5 5"/></svg>
+                  <span>Reset Peserta</span>
+                </button>
+              </div>
             </div>
 
             <div class="table-responsive">
@@ -358,26 +383,26 @@
       <div class="modal-body">
         <form id="formRequestReset">
           <div class="form-group">
-            <label for="resetStudentId"><strong>Username / No Peserta ANBK:</strong> <span class="text-danger">*</span></label>
+            <label for="resetStudentName"><strong>Nama Peserta:</strong> <span class="text-danger">*</span></label>
             <input 
               type="text" 
-              id="resetStudentId" 
+              id="resetStudentName" 
               class="form-control" 
-              placeholder="Contoh: U05110068-0012" 
+              placeholder="Ketikkan nama peserta yang mengalami kendala" 
               autocomplete="off"
               required
             >
-            <small class="form-hint">Salin atau ketikkan username peserta yang tertera di kartu login.</small>
+            <small class="form-hint">Wajib diisi agar Proktor Utama tahu siapa yang perlu di-reset.</small>
           </div>
 
           <div class="form-row">
             <div class="form-group col-half">
-              <label for="resetStudentName">Nama Peserta (Opsional):</label>
-              <input type="text" id="resetStudentName" class="form-control" placeholder="Contoh: Ahmad Fauzi">
+              <label for="resetComputerNo">No Meja / PC (Opsional):</label>
+              <input type="text" id="resetComputerNo" class="form-control" placeholder="Contoh: PC-05">
             </div>
             <div class="form-group col-half">
-              <label for="resetComputerNo">No Meja / Komputer:</label>
-              <input type="text" id="resetComputerNo" class="form-control" placeholder="Contoh: PC-05">
+              <label for="resetStudentId">No Peserta / ID (Opsional):</label>
+              <input type="text" id="resetStudentId" class="form-control" placeholder="Opsional (tidak wajib)">
             </div>
           </div>
 
