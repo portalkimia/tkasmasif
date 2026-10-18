@@ -100,30 +100,19 @@ Setiap pengawas/guru yang membuka website ini akan **langsung terhubung secara o
 
 ---
 
-### Bagian 3: Mengunggah ke GitHub & Mengaktifkan GitHub Pages (Online)
+### Bagian 3: Repository GitHub & GitHub Pages (Online)
 
-Agar web ini bisa diakses bersama oleh seluruh pengawas ruang melalui HP/Laptop masing-masing di jaringan sekolah:
+Proyek ini telah terhubung ke repository GitHub:
+- **Repository**: [https://github.com/portalkimia/tkasmasif](https://github.com/portalkimia/tkasmasif)
+- **Website Live (GitHub Pages)**: [https://portalkimia.github.io/tkasmasif/](https://portalkimia.github.io/tkasmasif/)
+- **Script ID Google Apps Script**: `1Gmw-VHEeBjw0aS4WZ-L7vtxkY9rQjdxnD6nJ-Rw7uvqJUy0Ys7SfvaUr`
 
-1. Buat repository baru di akun GitHub Anda:
-   - Nama repo: `anbk-token-share`
-   - Set ke **Public**.
-2. Unggah seluruh file proyek ini (`index.html`, folder `css`, folder `js`, folder `gas`, dan `README.md`) ke repository tersebut:
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit: ANBK Realtime Token Share"
-   git branch -M main
-   git remote add origin https://github.com/USERNAME-ANDA/anbk-token-share.git
-   git push -u origin main
-   ```
-3. Aktifkan **GitHub Pages**:
-   - Di halaman repository GitHub Anda, klik menu **Settings** (Pengaturan).
-   - Di bilah menu kiri, pilih **Pages**.
-   - Di bagian **Build and deployment** > **Branch**, pilih branch `main` dan folder `/(root)`.
-   - Klik **Save**.
-4. Tunggu sekitar 1-2 menit. GitHub Pages akan memberikan alamat URL website Anda:
-   `https://USERNAME-ANDA.github.io/anbk-token-share/`
-5. Bagikan tautan website tersebut kepada seluruh pengawas ruang ujian!
+Untuk memperbarui file ke GitHub di kemudian hari via terminal di folder ini:
+```bash
+git add .
+git commit -m "Update token monitor"
+git push origin main
+```
 
 ---
 
