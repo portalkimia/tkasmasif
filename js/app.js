@@ -283,9 +283,33 @@
   let remainingSeconds = 5;
   let isFetching = false;
   let audioContext = null;
-  let alertedRequestIds = new Set(); // Prevent duplicate alerts
+  const STORAGE_ALERTED_KEY = 'anbk_alerted_requests';
+  function loadAlertedRequestIds() {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_ALERTED_KEY);
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) return new Set(arr);
+      }
+    } catch (e) {}
+    return new Set();
+  }
+
+  function saveAlertedRequestIds() {
+    try {
+      sessionStorage.setItem(STORAGE_ALERTED_KEY, JSON.stringify(Array.from(alertedRequestIds)));
+    } catch (e) {}
+  }
+
+  let alertedRequestIds = loadAlertedRequestIds(); // Prevent duplicate alerts
   let requestHistory = []; // Local request log
-  let lastResetConfirmId = null; // Melacak ID sinyal konfirmasi reset terbaru
+  let lastResetConfirmId = (function() {
+    try {
+      return sessionStorage.getItem('anbk_last_reset_confirm_id') || null;
+    } catch (e) {
+      return null;
+    }
+  })(); // Melacak ID sinyal konfirmasi reset terbaru
 
   // Settings
   let settings = {
@@ -502,8 +526,12 @@
       console.warn('Gagal memuat pengaturan:', e);
     }
 
-    if (!settings.gasUrl) {
+    // Pastikan terhubung langsung ke backend GAS aktif pada setiap device
+    if (!settings.gasUrl || typeof settings.gasUrl !== 'string' || !settings.gasUrl.includes('/macros/s/') || !settings.gasUrl.includes('AKfycbwUzzj_Gh17fBAZ29zJ8vVoprzZFBh6vm_8Y1TzI1wbzlWiYa6ygw-Z5XcQhzSjHi0rIA')) {
       settings.gasUrl = DEFAULT_GAS_URL;
+      try {
+        localStorage.setItem('anbk_token_settings', JSON.stringify(settings));
+      } catch (e) {}
     }
 
     const gasInput = document.getElementById('gasUrlInput');
@@ -770,21 +798,33 @@
   function handleIncomingRequests(activeRequests, resetConfirmation) {
     if (!currentRoomObj) return;
 
+    const nowMs = Date.now();
+
     if (currentRoomObj.role === 'utama') {
       // PROKTOR UTAMA: Hanya proses permintaan yang ditujukan ke ruangan dan proktorId ini!
       const myTargetedRequests = (activeRequests || []).filter(req => {
         const statusPending = (req.status || 'PENDING') === 'PENDING';
         const targetMatch = req.targetRoom === currentRoomObj.room;
         const proctorMatch = req.proctorId === currentRoomObj.proctorId;
-        return statusPending && targetMatch && proctorMatch;
+
+        // Cek umur request: abaikan request yang lebih lama dari 5 menit
+        let reqTimeMs = 0;
+        const idMatch = String(req.requestId || '').match(/REQ-(?:TOK-|RST-)?(\d+)/);
+        if (idMatch && idMatch[1]) {
+          reqTimeMs = parseInt(idMatch[1], 10);
+        }
+        const isFresh = (reqTimeMs === 0) || (nowMs - reqTimeMs < 5 * 60 * 1000);
+
+        return statusPending && targetMatch && proctorMatch && isFresh;
       });
 
       if (myTargetedRequests.length > 0) {
         const latestReq = myTargetedRequests[0];
 
-        // Trigger desktop push notification & popup if not yet alerted
+        // Trigger desktop push notification & popup if not yet alerted in this session
         if (!alertedRequestIds.has(latestReq.requestId)) {
           alertedRequestIds.add(latestReq.requestId);
+          saveAlertedRequestIds();
 
           const isReset = latestReq.type === 'RESET';
           const notifTitle = isReset
@@ -809,9 +849,17 @@
       if (resetConfirmation && resetConfirmation.id) {
         const matchTarget = !resetConfirmation.targetRoom || resetConfirmation.targetRoom === currentRoomObj.room;
         const matchProctor = !resetConfirmation.proctorId || resetConfirmation.proctorId === currentRoomObj.proctorId;
+        const notFromMe = resetConfirmation.fromRoom !== currentRoomObj.room;
 
-        if (matchTarget && matchProctor && resetConfirmation.id !== lastResetConfirmId) {
+        // Cek umur konfirmasi (< 5 menit)
+        const confTimeMs = resetConfirmation.timeMs || 0;
+        const isFresh = (confTimeMs === 0) || (nowMs - confTimeMs < 5 * 60 * 1000);
+
+        if (matchTarget && matchProctor && notFromMe && isFresh && resetConfirmation.id !== lastResetConfirmId) {
           lastResetConfirmId = resetConfirmation.id;
+          try {
+            sessionStorage.setItem('anbk_last_reset_confirm_id', lastResetConfirmId);
+          } catch (e) {}
 
           const fromStr = resetConfirmation.fromRoom ? ` (${resetConfirmation.fromRoom})` : '';
           showToast(`✅ Proktor Utama${fromStr} telah menyelesaikan reset login peserta!`, 'success');
@@ -1059,6 +1107,10 @@
 
   async function confirmResetFromUtama(requestId) {
     closeModal('incomingRequestModal');
+    if (requestId) {
+      alertedRequestIds.add(requestId);
+      saveAlertedRequestIds();
+    }
     if (!currentRoomObj || currentRoomObj.role !== 'utama') return;
 
     const partner = currentRoomObj.partnerRoom || 'Proktor Bayangan';
@@ -1093,6 +1145,10 @@
 
   async function resolveRequest(requestId) {
     closeModal('incomingRequestModal');
+    if (requestId) {
+      alertedRequestIds.add(requestId);
+      saveAlertedRequestIds();
+    }
     showToast('Menandai permintaan selesai...', 'info');
 
     if (settings.gasUrl) {

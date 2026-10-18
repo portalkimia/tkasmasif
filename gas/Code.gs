@@ -83,6 +83,12 @@ function doGet(e) {
       return createJsonResponse(result);
     }
 
+    // Action: Bersihkan Permintaan Pending Lama
+    if (action === 'clear_requests') {
+      const result = clearAllPendingRequests();
+      return createJsonResponse(result);
+    }
+
     // Action: Fast Check Requests (Super Cepat via CacheService)
     if (action === 'check_requests') {
       const targetRoomFilter = params.targetRoom || '';
@@ -92,12 +98,11 @@ function doGet(e) {
       let resetConfirmation = null;
       try {
         const cache = CacheService.getScriptCache();
-        const rawConfirm = targetRoomFilter ? cache.get('CONFIRM_RESET_' + String(targetRoomFilter).trim()) : null;
-        if (rawConfirm) {
-          resetConfirmation = JSON.parse(rawConfirm);
-        } else if (proctorIdFilter) {
-          const rawPid = cache.get('CONFIRM_RESET_PID_' + String(proctorIdFilter).trim());
-          if (rawPid) resetConfirmation = JSON.parse(rawPid);
+        if (targetRoomFilter) {
+          const rawConfirm = cache.get('CONFIRM_RESET_' + String(targetRoomFilter).trim());
+          if (rawConfirm) {
+            resetConfirmation = JSON.parse(rawConfirm);
+          }
         }
       } catch (e) {}
 
@@ -117,12 +122,11 @@ function doGet(e) {
     let resetConfirmation = null;
     try {
       const cache = CacheService.getScriptCache();
-      const rawConfirm = targetRoomFilter ? cache.get('CONFIRM_RESET_' + String(targetRoomFilter).trim()) : null;
-      if (rawConfirm) {
-        resetConfirmation = JSON.parse(rawConfirm);
-      } else if (proctorIdFilter) {
-        const rawPid = cache.get('CONFIRM_RESET_PID_' + String(proctorIdFilter).trim());
-        if (rawPid) resetConfirmation = JSON.parse(rawPid);
+      if (targetRoomFilter) {
+        const rawConfirm = cache.get('CONFIRM_RESET_' + String(targetRoomFilter).trim());
+        if (rawConfirm) {
+          resetConfirmation = JSON.parse(rawConfirm);
+        }
       }
     } catch (e) {}
 
@@ -323,6 +327,9 @@ function updateTokenInSheet(groupId, newToken, updatedBy) {
     sheet.getRange(r, 6).setValue(formattedTime + ' (oleh ' + updatedBy + ')');
   }
 
+  // Otomatis tandai selesai semua permintaan TOKEN yang tertunda untuk grup ini
+  resolveTokenRequestsForGroup(groupId);
+
   return {
     status: 'success',
     message: 'Token untuk ' + target.rooms + ' berhasil diperbarui menjadi: ' + newToken,
@@ -330,6 +337,82 @@ function updateTokenInSheet(groupId, newToken, updatedBy) {
     token: newToken,
     updatedAt: formattedTime
   };
+}
+
+/**
+ * Otomatis menyelesaikan permintaan rilis token jika token sudah dirilis/diperbarui
+ */
+function resolveTokenRequestsForGroup(groupId) {
+  try {
+    const cache = CacheService.getScriptCache();
+    const cached = cache.get('ACTIVE_REQUESTS_CACHE');
+    if (cached) {
+      let list = JSON.parse(cached);
+      list.forEach(function (item) {
+        if (String(item.groupId) === String(groupId) && item.type === 'TOKEN') {
+          item.status = 'COMPLETED';
+        }
+      });
+      cache.put('ACTIVE_REQUESTS_CACHE', JSON.stringify(list), 21600);
+    }
+  } catch (e) {}
+
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(REQUEST_SHEET_NAME);
+    if (!sheet) return;
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return;
+    const data = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
+    const nowStr = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'dd/MM/yyyy HH:mm:ss');
+    for (let i = 0; i < data.length; i++) {
+      const rGid = String(data[i][5]);
+      const rType = String(data[i][6]).toUpperCase();
+      const rStat = String(data[i][8]).toUpperCase();
+      if (rGid === String(groupId) && rType === 'TOKEN' && rStat === 'PENDING') {
+        sheet.getRange(i + 2, 9).setValue('COMPLETED');
+        sheet.getRange(i + 2, 11).setValue(nowStr);
+      }
+    }
+  } catch (e) {}
+}
+
+/**
+ * Membersihkan semua permintaan pending lama
+ */
+function clearAllPendingRequests() {
+  try {
+    const cache = CacheService.getScriptCache();
+    cache.remove('ACTIVE_REQUESTS_CACHE');
+    const rooms = ['R1','R2','R3','R4','R5','R6','R7','R8','R9','R10','R11'];
+    rooms.forEach(function(rm) {
+      cache.remove('CONFIRM_RESET_' + rm);
+    });
+    const pids = ['U05110068-AV3U','U05110068-BV2U','U05110068-CX7U','U05110068-FZ4U','U05110068-DK7U','U05110068-EK3U'];
+    pids.forEach(function(pid) {
+      cache.remove('CONFIRM_RESET_PID_' + pid);
+    });
+  } catch (e) {}
+
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(REQUEST_SHEET_NAME);
+    if (sheet) {
+      const lastRow = sheet.getLastRow();
+      if (lastRow >= 2) {
+        const range = sheet.getRange(2, 9, lastRow - 1, 1);
+        const values = range.getValues();
+        for (let i = 0; i < values.length; i++) {
+          if (String(values[i][0]).toUpperCase() === 'PENDING') {
+            values[i][0] = 'COMPLETED';
+          }
+        }
+        range.setValues(values);
+      }
+    }
+  } catch (e) {}
+
+  return { status: 'success', message: 'Semua permintaan pending lama berhasil dibersihkan!' };
 }
 
 /**
@@ -426,12 +509,22 @@ function getActiveRequestsFast(targetRoomFilter, proctorIdFilter) {
     } catch (e) {}
   }
 
-  // Filter permintaan aktif yang cocok
+  // Filter permintaan aktif yang cocok dan masih fresh (< 10 menit)
+  const nowMs = Date.now();
   return list.filter(function (row) {
     const isPending = (row.status || 'PENDING') === 'PENDING';
     const matchTarget = !targetRoomFilter || String(row.targetRoom).trim() === String(targetRoomFilter).trim();
     const matchProctor = !proctorIdFilter || String(row.proctorId).trim() === String(proctorIdFilter).trim();
-    return isPending && matchTarget && matchProctor;
+
+    // Cek umur request agar request lama tidak terus aktif
+    let reqTimeMs = 0;
+    const idMatch = String(row.requestId || '').match(/REQ-(\d+)/);
+    if (idMatch && idMatch[1]) {
+      reqTimeMs = parseInt(idMatch[1], 10);
+    }
+    const isNotExpired = (reqTimeMs === 0) || (nowMs - reqTimeMs < 10 * 60 * 1000);
+
+    return isPending && matchTarget && matchProctor && isNotExpired;
   });
 }
 
@@ -551,9 +644,6 @@ function confirmResetInSheet(fromRoom, targetRoom, proctorId, detail, requestId)
     const cache = CacheService.getScriptCache();
     if (targetRoom) {
       cache.put('CONFIRM_RESET_' + String(targetRoom).trim(), JSON.stringify(confirmObj), 21600);
-    }
-    if (proctorId) {
-      cache.put('CONFIRM_RESET_PID_' + String(proctorId).trim(), JSON.stringify(confirmObj), 21600);
     }
   } catch (e) {
     console.warn('Cache confirm_reset error:', e);
