@@ -318,6 +318,7 @@
   let settings = {
     gasUrl: DEFAULT_GAS_URL,
     refreshInterval: 5,
+    desktopNotificationsEnabled: true,
     soundEnabled: true
   };
 
@@ -407,13 +408,7 @@
     localStorage.setItem('anbk_selected_room', room.room);
 
     // Request desktop notification permission if supported
-    if (isUserAction && 'Notification' in window && Notification.permission === 'default') {
-      try {
-        Notification.requestPermission().catch(console.warn);
-      } catch (e) {
-        console.warn('Request notification error:', e);
-      }
-    }
+    if (isUserAction) requestDesktopNotificationPermission();
 
     // Update Topbar Display: Proctor ID & Room
     const proctorIdEl = document.getElementById('activeProctorId');
@@ -488,9 +483,18 @@
   }
 
   // --- NATIVE DESKTOP PUSH NOTIFICATION (SILENT, HANYA SAAT TAB DI BELAKANG) ---
+  function requestDesktopNotificationPermission() {
+    if (!settings.desktopNotificationsEnabled || !('Notification' in window) || Notification.permission !== 'default') return;
+    try {
+      Notification.requestPermission().catch(console.warn);
+    } catch (e) {
+      console.warn('Request notification error:', e);
+    }
+  }
+
   function showDesktopNotification(title, body, tag, onClickCallback) {
     // HANYA muncul jika browser sedang berada di tab lain atau aplikasi lain
-    if (!document.hidden) {
+    if (!settings.desktopNotificationsEnabled || !document.hidden) {
       return; // Tab sedang aktif di depan, notifikasi visual web sudah tampil
     }
 
@@ -528,6 +532,7 @@
     } catch (e) {
       console.warn('Gagal memuat pengaturan:', e);
     }
+    if (typeof settings.desktopNotificationsEnabled !== 'boolean') settings.desktopNotificationsEnabled = true;
 
     // Pastikan terhubung langsung ke backend GAS aktif pada setiap device
     if (!settings.gasUrl || typeof settings.gasUrl !== 'string' || !settings.gasUrl.includes('/macros/s/') || !settings.gasUrl.includes('AKfycbwUzzj_Gh17fBAZ29zJ8vVoprzZFBh6vm_8Y1TzI1wbzlWiYa6ygw-Z5XcQhzSjHi0rIA')) {
@@ -539,12 +544,12 @@
 
     const gasInput = document.getElementById('gasUrlInput');
     const intervalSelect = document.getElementById('refreshIntervalSelect');
-    const soundSelect = document.getElementById('soundNotificationSelect');
+    const desktopSelect = document.getElementById('desktopNotifSelect');
     const audioBtn = document.getElementById('btnAudioToggle');
 
     if (gasInput) gasInput.value = settings.gasUrl || DEFAULT_GAS_URL;
     if (intervalSelect) intervalSelect.value = String(settings.refreshInterval);
-    if (soundSelect) soundSelect.value = String(settings.soundEnabled);
+    if (desktopSelect) desktopSelect.value = String(settings.desktopNotificationsEnabled);
     if (audioBtn) audioBtn.classList.toggle('active', settings.soundEnabled);
 
     updateConnectionStatusPill();
@@ -553,11 +558,11 @@
   function saveSettings() {
     const gasInput = document.getElementById('gasUrlInput');
     const intervalSelect = document.getElementById('refreshIntervalSelect');
-    const soundSelect = document.getElementById('soundNotificationSelect');
+    const desktopSelect = document.getElementById('desktopNotifSelect');
 
     settings.gasUrl = (gasInput ? gasInput.value.trim() : '');
     settings.refreshInterval = parseInt(intervalSelect ? intervalSelect.value : '5', 10);
-    settings.soundEnabled = (soundSelect ? soundSelect.value === 'true' : true);
+    if (desktopSelect) settings.desktopNotificationsEnabled = desktopSelect.value === 'true';
 
     try {
       localStorage.setItem('anbk_token_settings', JSON.stringify(settings));
@@ -567,6 +572,8 @@
 
     const audioBtn = document.getElementById('btnAudioToggle');
     if (audioBtn) audioBtn.classList.toggle('active', settings.soundEnabled);
+
+    requestDesktopNotificationPermission();
 
     showToast('Pengaturan berhasil disimpan!', 'success');
     closeModal('settingsModal');
