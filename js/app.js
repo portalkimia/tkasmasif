@@ -282,6 +282,9 @@
   let fastPollTimer = null; // High-speed request polling (1.5 detik)
   let remainingSeconds = 5;
   let isFetching = false;
+  let tokenDataVersion = 0;
+  let isSendingTokenRequest = false;
+  let isConfirmingReset = false;
   let audioContext = null;
   const STORAGE_ALERTED_KEY = 'anbk_alerted_requests';
   function loadAlertedRequestIds() {
@@ -699,6 +702,7 @@
   async function fetchLatestTokens(isManual) {
     if (isFetching) return;
     isFetching = true;
+    const fetchVersion = tokenDataVersion;
 
     const refreshBtn = document.getElementById('btnManualRefresh');
     if (refreshBtn) refreshBtn.classList.add('loading');
@@ -732,7 +736,7 @@
       const resJson = await response.json();
 
       if (resJson && resJson.status === 'success' && Array.isArray(resJson.data)) {
-        handleIncomingData(resJson.data);
+        if (fetchVersion === tokenDataVersion) handleIncomingData(resJson.data);
         handleIncomingRequests(resJson.activeRequests || [], resJson.resetConfirmation || null);
         updateConnectionStatusPill('online', 'LIVE SINKRON');
         if (updateClock) updateClock.textContent = nowTimeStr;
@@ -877,8 +881,33 @@
   }
 
   // --- ACTIONS: PROKTOR BAYANGAN REQUESTS ---
+  async function sendGasAction(params) {
+    if (!settings.gasUrl) throw new Error('URL backend belum diatur.');
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    try {
+      const query = new URLSearchParams(Object.assign({}, params, { _t: Date.now() }));
+      const url = `${settings.gasUrl}${settings.gasUrl.includes('?') ? '&' : '?'}${query}`;
+      const response = await fetch(url, { method: 'GET', cache: 'no-store', signal: controller.signal });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const result = await response.json();
+      if (!result || result.status !== 'success') {
+        throw new Error((result && result.message) || 'Backend belum mengonfirmasi keberhasilan.');
+      }
+      return result;
+    } catch (err) {
+      if (err.name === 'AbortError') throw new Error('Koneksi ke server melewati batas waktu.');
+      throw err;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
   async function sendTokenRequest() {
-    if (!currentRoomObj || currentRoomObj.role !== 'bayangan') return;
+    if (!currentRoomObj || currentRoomObj.role !== 'bayangan' || isSendingTokenRequest) return;
+    const room = currentRoomObj;
+    isSendingTokenRequest = true;
 
     const reqId = 'REQ-TOK-' + Date.now();
     const nowStr = new Date().toLocaleTimeString('id-ID');
@@ -893,28 +922,22 @@
       fromRoom: currentRoomObj.room
     };
 
-    requestHistory.unshift(newReq);
-    saveRequestHistory();
-
-    showToast(`Permintaan rilis token baru telah terkirim ke Proktor Utama (${currentRoomObj.partnerRoom}). Menunggu rilis token...`, 'info');
-
-    // Push to GAS
-    if (settings.gasUrl) {
-      try {
-        const url = `${settings.gasUrl}${settings.gasUrl.includes('?') ? '&' : '?'}action=create_request` +
-          `&fromRoom=${encodeURIComponent(currentRoomObj.room)}` +
-          `&targetRoom=${encodeURIComponent(currentRoomObj.partnerRoom)}` +
-          `&proctorId=${encodeURIComponent(currentRoomObj.proctorId)}` +
-          `&groupId=${encodeURIComponent(currentRoomObj.groupId)}` +
-          `&type=TOKEN` +
-          `&detail=${encodeURIComponent(newReq.detail)}` +
-          `&fromProctor=${encodeURIComponent(currentRoomObj.name)}` +
-          `&_t=${Date.now()}`;
-
-        await fetch(url, { method: 'GET', cache: 'no-store' });
-      } catch (e) {
-        console.warn('Gagal kirim request token ke GAS:', e);
-      }
+    showToast(`Mengirim permintaan token ke Proktor Utama (${room.partnerRoom})...`, 'info');
+    try {
+      const result = await sendGasAction({
+        action: 'create_request', fromRoom: room.room, targetRoom: room.partnerRoom,
+        proctorId: room.proctorId, groupId: room.groupId, type: 'TOKEN',
+        detail: newReq.detail, fromProctor: room.name
+      });
+      newReq.id = result.requestId || reqId;
+      requestHistory.unshift(newReq);
+      saveRequestHistory();
+      showToast(`Permintaan rilis token baru telah terkirim ke Proktor Utama (${room.partnerRoom}). Menunggu rilis token...`, 'info');
+    } catch (err) {
+      console.warn('Gagal kirim request token ke GAS:', err);
+      showToast(`Permintaan token belum terkonfirmasi: ${err.message}. Klik kembali menu Daftar Peserta untuk mencoba lagi.`, 'error');
+    } finally {
+      isSendingTokenRequest = false;
     }
   }
 
@@ -951,6 +974,8 @@
     const submitBtn = document.getElementById('submitResetRequestBtn');
     const submitSpinner = document.getElementById('submitResetSpinner');
     const submitText = document.getElementById('btnSubmitResetText');
+    if (submitBtn && submitBtn.disabled) return;
+    const room = currentRoomObj;
 
     // HANYA NAMA PESERTA YANG WAJIB
     const studentName = studentNameInput ? studentNameInput.value.trim() : '';
@@ -984,34 +1009,25 @@
       fromRoom: currentRoomObj.room
     };
 
-    requestHistory.unshift(newReq);
-    saveRequestHistory();
-
-    // Push to GAS
-    if (settings.gasUrl) {
-      try {
-        const url = `${settings.gasUrl}${settings.gasUrl.includes('?') ? '&' : '?'}action=create_request` +
-          `&fromRoom=${encodeURIComponent(currentRoomObj.room)}` +
-          `&targetRoom=${encodeURIComponent(currentRoomObj.partnerRoom)}` +
-          `&proctorId=${encodeURIComponent(currentRoomObj.proctorId)}` +
-          `&groupId=${encodeURIComponent(currentRoomObj.groupId)}` +
-          `&type=RESET` +
-          `&detail=${encodeURIComponent(detailText)}` +
-          `&fromProctor=${encodeURIComponent(currentRoomObj.name)}` +
-          `&_t=${Date.now()}`;
-
-        await fetch(url, { method: 'GET', cache: 'no-store' });
-      } catch (err) {
-        console.warn('Gagal kirim reset ke GAS:', err);
-      }
+    try {
+      const result = await sendGasAction({
+        action: 'create_request', fromRoom: room.room, targetRoom: room.partnerRoom,
+        proctorId: room.proctorId, groupId: room.groupId, type: 'RESET',
+        detail: detailText, fromProctor: room.name
+      });
+      newReq.id = result.requestId || reqId;
+      requestHistory.unshift(newReq);
+      saveRequestHistory();
+      closeModal('modalRequestReset');
+      showToast(`Permintaan reset login untuk peserta "${studentName}" telah terkirim ke Proktor Utama (${room.partnerRoom}). Menunggu konfirmasi reset...`, 'info');
+    } catch (err) {
+      console.warn('Gagal kirim reset ke GAS:', err);
+      showToast(`Permintaan reset belum terkonfirmasi: ${err.message}. Isian tetap tersimpan; silakan klik Kirim Permintaan Reset untuk mencoba lagi.`, 'error');
+    } finally {
+      if (submitSpinner) submitSpinner.style.display = 'none';
+      if (submitText) submitText.textContent = 'Kirim Permintaan Reset';
+      if (submitBtn) submitBtn.disabled = false;
     }
-
-    if (submitSpinner) submitSpinner.style.display = 'none';
-    if (submitText) submitText.textContent = 'Kirim Permintaan Reset';
-    if (submitBtn) submitBtn.disabled = false;
-
-    closeModal('modalRequestReset');
-    showToast(`Permintaan reset login untuk peserta "${studentName}" telah terkirim ke Proktor Utama (${currentRoomObj.partnerRoom}). Menunggu konfirmasi reset...`, 'info');
   }
 
   // --- ACTIONS: PROKTOR UTAMA INCOMING REQUEST MODAL ---
@@ -1087,7 +1103,7 @@
         `;
       } else {
         buttonsHtml += `
-          <button class="btn-resolve-request" onclick="window.anbkApp.openUpdateModal(${currentRoomObj ? currentRoomObj.groupId : 1}); window.anbkApp.resolveRequest('${escapeJs(req.requestId)}');">
+          <button class="btn-resolve-request" onclick="window.anbkApp.closeIncomingModal(); window.anbkApp.openUpdateModal(${currentRoomObj ? currentRoomObj.groupId : 1});">
             🔑 Update & Rilis Token
           </button>
         `;
@@ -1106,59 +1122,44 @@
   }
 
   async function confirmResetFromUtama(requestId) {
-    closeModal('incomingRequestModal');
-    if (requestId) {
-      alertedRequestIds.add(requestId);
-      saveAlertedRequestIds();
-    }
-    if (!currentRoomObj || currentRoomObj.role !== 'utama') return;
+    if (!currentRoomObj || currentRoomObj.role !== 'utama' || isConfirmingReset) return;
+    const room = currentRoomObj;
+    isConfirmingReset = true;
 
     const partner = currentRoomObj.partnerRoom || 'Proktor Bayangan';
     showToast(`Mengirim sinyal konfirmasi reset login ke ${partner}...`, 'info');
 
-    if (settings.gasUrl) {
-      try {
-        const reqParam = requestId ? `&requestId=${encodeURIComponent(requestId)}` : '';
-        const url = `${settings.gasUrl}${settings.gasUrl.includes('?') ? '&' : '?'}action=confirm_reset` +
-          `&fromRoom=${encodeURIComponent(currentRoomObj.room)}` +
-          `&targetRoom=${encodeURIComponent(currentRoomObj.partnerRoom || '')}` +
-          `&proctorId=${encodeURIComponent(currentRoomObj.proctorId)}` +
-          `&detail=${encodeURIComponent('Reset login peserta telah selesai diproses oleh Proktor Utama.')}` +
-          `${reqParam}` +
-          `&_t=${Date.now()}`;
-
-        const resp = await fetch(url, { method: 'GET', cache: 'no-store' });
-        const resJson = await resp.json();
-        if (resJson && resJson.status === 'success') {
-          showToast(`✓ Sinyal konfirmasi reset berhasil dikirim ke ${partner}!`, 'success');
-        } else {
-          showToast(`Sinyal reset terkirim ke ${partner}.`, 'success');
-        }
-      } catch (err) {
-        console.warn('Gagal confirm reset ke GAS:', err);
-        showToast(`Sinyal konfirmasi reset terkirim secara lokal ke ${partner}.`, 'info');
+    try {
+      await sendGasAction({
+        action: 'confirm_reset', fromRoom: room.room, targetRoom: room.partnerRoom || '',
+        proctorId: room.proctorId, requestId: requestId || '',
+        detail: 'Reset login peserta telah selesai diproses oleh Proktor Utama.'
+      });
+      if (requestId) {
+        alertedRequestIds.add(requestId);
+        saveAlertedRequestIds();
       }
-    } else {
-      showToast(`✓ Sinyal konfirmasi reset terkirim ke ${partner}!`, 'success');
+      closeModal('incomingRequestModal');
+      showToast(`✓ Sinyal konfirmasi reset berhasil dikirim ke ${partner}!`, 'success');
+    } catch (err) {
+      console.warn('Gagal confirm reset ke GAS:', err);
+      showToast(`Konfirmasi reset belum terkonfirmasi: ${err.message}. Silakan coba lagi.`, 'error');
+    } finally {
+      isConfirmingReset = false;
     }
   }
 
   async function resolveRequest(requestId) {
-    closeModal('incomingRequestModal');
-    if (requestId) {
+    showToast('Menandai permintaan selesai...', 'info');
+    try {
+      await sendGasAction({ action: 'resolve_request', requestId });
       alertedRequestIds.add(requestId);
       saveAlertedRequestIds();
-    }
-    showToast('Menandai permintaan selesai...', 'info');
-
-    if (settings.gasUrl) {
-      try {
-        const url = `${settings.gasUrl}${settings.gasUrl.includes('?') ? '&' : '?'}action=resolve_request&requestId=${encodeURIComponent(requestId)}&_t=${Date.now()}`;
-        await fetch(url, { method: 'GET', cache: 'no-store' });
-        showToast('Permintaan berhasil ditandai selesai!', 'success');
-      } catch (err) {
-        console.warn('Gagal resolve request di GAS:', err);
-      }
+      closeModal('incomingRequestModal');
+      showToast('Permintaan berhasil ditandai selesai!', 'success');
+    } catch (err) {
+      console.warn('Gagal resolve request di GAS:', err);
+      showToast(`Permintaan belum ditandai selesai: ${err.message}. Silakan coba lagi.`, 'error');
     }
   }
 
@@ -1406,13 +1407,20 @@
     const submitBtn = document.getElementById('submitUpdateBtn');
     const submitSpinner = document.getElementById('submitSpinner');
     const submitText = document.getElementById('btnSubmitText');
+    if (submitBtn && submitBtn.disabled) return;
 
     const groupId = parseInt(hiddenId.value, 10);
     const newToken = tokenInput.value.trim().toUpperCase();
     const updaterName = (updaterInput.value.trim() || (currentRoomObj ? currentRoomObj.name : 'Proktor Web'));
 
-    if (!newToken || newToken.length < 3) {
-      showToast('Token minimal 3 karakter huruf.', 'error');
+    if (!/^[A-Z]{6}$/.test(newToken)) {
+      showToast('Token harus tepat 6 huruf kapital (A–Z).', 'error');
+      return;
+    }
+
+    const group = groupsData.find(g => g.id === groupId);
+    if (!group) {
+      showToast('Grup ruangan tidak ditemukan.', 'error');
       return;
     }
 
@@ -1420,45 +1428,25 @@
     if (submitText) submitText.textContent = 'Menyimpan...';
     if (submitBtn) submitBtn.disabled = true;
 
-    // Optimistic local update
-    const group = groupsData.find(g => g.id === groupId);
-    if (group) {
+    // Tampilkan token baru hanya setelah backend mengonfirmasi penyimpanan.
+    try {
+      const result = await sendGasAction({ action: 'update', groupId, token: newToken, updatedBy: updaterName });
+      tokenDataVersion++;
       group.token = newToken;
-      group.lastUpdated = new Date().toLocaleTimeString('id-ID') + ' WIB';
+      group.lastUpdated = result.updatedAt || new Date().toLocaleTimeString('id-ID') + ' WIB';
       saveCachedTokens();
       renderAllViews();
       playTokenAlertSound();
+      closeModal('updateTokenModal');
+      showToast(`Token untuk ${group.roomsLabel} berhasil diperbarui di Google Sheets!`, 'success');
+    } catch (err) {
+      console.warn('Gagal push ke GAS:', err);
+      showToast(`Token belum tersinkron: ${err.message}. Token aktif tetap dipertahankan; klik Simpan & Bagikan Token untuk mencoba lagi.`, 'error');
+    } finally {
+      if (submitSpinner) submitSpinner.style.display = 'none';
+      if (submitText) submitText.textContent = 'Simpan & Bagikan Token';
+      if (submitBtn) submitBtn.disabled = false;
     }
-
-    // Push to Google Apps Script if URL configured
-    if (settings.gasUrl) {
-      try {
-        const updateUrl = `${settings.gasUrl}${settings.gasUrl.includes('?') ? '&' : '?'}action=update&groupId=${groupId}&token=${encodeURIComponent(newToken)}&updatedBy=${encodeURIComponent(updaterName)}&_t=${Date.now()}`;
-        
-        const response = await fetch(updateUrl, {
-          method: 'GET',
-          cache: 'no-store'
-        });
-
-        const resJson = await response.json();
-        if (resJson && resJson.status === 'success') {
-          showToast(`Token untuk ${group ? group.roomsLabel : ''} berhasil diperbarui di Google Sheets!`, 'success');
-        } else {
-          showToast(`Token disimpan lokal, respon Sheets: ${resJson.message || 'Gagal'}`, 'info');
-        }
-      } catch (err) {
-        console.warn('Gagal push ke GAS:', err);
-        showToast('Token disimpan secara lokal (Gagal menghubungi API Google Sheets)', 'info');
-      }
-    } else {
-      showToast(`Token untuk ${group ? group.roomsLabel : ''} berhasil diupdate secara lokal!`, 'success');
-    }
-
-    if (submitSpinner) submitSpinner.style.display = 'none';
-    if (submitText) submitText.textContent = 'Simpan & Bagikan Token';
-    if (submitBtn) submitBtn.disabled = false;
-
-    closeModal('updateTokenModal');
   }
 
   function generateRandomToken() {

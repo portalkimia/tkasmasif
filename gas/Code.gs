@@ -73,7 +73,11 @@ function doGet(e) {
     }
 
     // Action: Tandai Permintaan Selesai / Konfirmasi Reset Login oleh Proktor Utama
-    if (action === 'resolve_request' || action === 'confirm_reset') {
+    if (action === 'resolve_request') {
+      return createJsonResponse(resolveRequestInSheet(params.requestId || ''));
+    }
+
+    if (action === 'confirm_reset') {
       const requestId = params.requestId || '';
       const fromRoom = params.fromRoom || '';
       const targetRoom = params.targetRoom || '';
@@ -296,6 +300,11 @@ function getTokensData() {
  * Memperbarui token pada Google Sheet berdasarkan groupId
  */
 function updateTokenInSheet(groupId, newToken, updatedBy) {
+  newToken = String(newToken || '').trim().toUpperCase();
+  if (!/^[A-Z]{6}$/.test(newToken)) {
+    return { status: 'error', message: 'Token harus tepat 6 huruf kapital (A–Z).' };
+  }
+
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
@@ -322,10 +331,11 @@ function updateTokenInSheet(groupId, newToken, updatedBy) {
 
   const formattedTime = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'dd/MM/yyyy HH:mm:ss');
 
+  const values = [];
   for (let r = target.rowStart; r <= target.rowEnd; r++) {
-    sheet.getRange(r, 5).setValue(newToken);
-    sheet.getRange(r, 6).setValue(formattedTime + ' (oleh ' + updatedBy + ')');
+    values.push([newToken, formattedTime + ' (oleh ' + updatedBy + ')']);
   }
+  sheet.getRange(target.rowStart, 5, values.length, 2).setValues(values);
 
   // Otomatis tandai selesai semua permintaan TOKEN yang tertunda untuk grup ini
   resolveTokenRequestsForGroup(groupId);
@@ -435,22 +445,7 @@ function createRequestInSheet(fromRoom, targetRoom, proctorId, groupId, type, de
     fromProctor: fromProctor
   };
 
-  // 1. Simpan langsung ke CacheService agar langsung terbaca dalam hitungan milidetik
-  try {
-    const cache = CacheService.getScriptCache();
-    let cached = cache.get('ACTIVE_REQUESTS_CACHE');
-    let list = [];
-    if (cached) {
-      try { list = JSON.parse(cached); } catch (e) { list = []; }
-    }
-    list.unshift(reqObj);
-    if (list.length > 40) list = list.slice(0, 40);
-    cache.put('ACTIVE_REQUESTS_CACHE', JSON.stringify(list), 21600);
-  } catch (err) {
-    console.warn('Cache write error:', err);
-  }
-
-  // 2. Simpan permanen ke Sheet
+  // Simpan permanen sebelum menyiarkan permintaan dan mengembalikan sukses.
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     let sheet = ss.getSheetByName(REQUEST_SHEET_NAME);
@@ -475,6 +470,20 @@ function createRequestInSheet(fromRoom, targetRoom, proctorId, groupId, type, de
     ]);
   } catch (sheetErr) {
     console.warn('Sheet append error:', sheetErr);
+    return { status: 'error', message: 'Permintaan gagal disimpan ke Google Sheets. Silakan coba lagi.' };
+  }
+
+  try {
+    const cache = CacheService.getScriptCache();
+    const cached = cache.get('ACTIVE_REQUESTS_CACHE');
+    let list = cached ? JSON.parse(cached) : getActiveRequests('');
+    list = list.filter(function (item) { return item.requestId !== requestId; });
+    list.unshift(reqObj);
+    cache.put('ACTIVE_REQUESTS_CACHE', JSON.stringify(list.slice(0, 40)), 21600);
+  } catch (err) {
+    console.warn('Cache write error:', err);
+    // Buang cache lama agar polling membaca permintaan yang sudah tersimpan.
+    try { CacheService.getScriptCache().remove('ACTIVE_REQUESTS_CACHE'); } catch (e) {}
   }
 
   return {
@@ -573,22 +582,9 @@ function getActiveRequests(targetRoomFilter) {
  * Menandai permintaan sebagai COMPLETED di Cache & Sheet
  */
 function resolveRequestInSheet(requestId) {
-  // 1. Update di CacheService secara instan
-  try {
-    const cache = CacheService.getScriptCache();
-    const cached = cache.get('ACTIVE_REQUESTS_CACHE');
-    if (cached) {
-      let list = JSON.parse(cached);
-      list.forEach(function (item) {
-        if (String(item.requestId).trim() === String(requestId).trim()) {
-          item.status = 'COMPLETED';
-        }
-      });
-      cache.put('ACTIVE_REQUESTS_CACHE', JSON.stringify(list), 21600);
-    }
-  } catch (cacheErr) {}
-
-  // 2. Update di Sheet
+  if (!requestId) return { status: 'error', message: 'RequestId wajib diisi.' };
+  let found = false;
+  // Konfirmasi perubahan di Sheet sebelum memperbarui cache.
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName(REQUEST_SHEET_NAME);
@@ -603,16 +599,34 @@ function resolveRequestInSheet(requestId) {
     for (let i = 0; i < ids.length; i++) {
       if (String(ids[i][0]).trim() === String(requestId).trim()) {
         const rowNum = i + 2;
-        sheet.getRange(rowNum, 9).setValue('COMPLETED');
-        sheet.getRange(rowNum, 11).setValue(nowStr);
-        return {
-          status: 'success',
-          message: 'Permintaan ' + requestId + ' berhasil ditandai selesai.'
-        };
+        const range = sheet.getRange(rowNum, 9, 1, 3);
+        const values = range.getValues();
+        values[0][0] = 'COMPLETED';
+        values[0][2] = nowStr;
+        range.setValues(values);
+        found = true;
+        break;
       }
     }
   } catch (sheetErr) {
     console.warn('Sheet resolve error:', sheetErr);
+    return { status: 'error', message: 'Status permintaan gagal disimpan. Silakan coba lagi.' };
+  }
+
+  if (!found) return { status: 'error', message: 'Permintaan tidak ditemukan.' };
+
+  try {
+    const cache = CacheService.getScriptCache();
+    const cached = cache.get('ACTIVE_REQUESTS_CACHE');
+    if (cached) {
+      const list = JSON.parse(cached);
+      list.forEach(function (item) {
+        if (String(item.requestId).trim() === String(requestId).trim()) item.status = 'COMPLETED';
+      });
+      cache.put('ACTIVE_REQUESTS_CACHE', JSON.stringify(list), 21600);
+    }
+  } catch (cacheErr) {
+    try { CacheService.getScriptCache().remove('ACTIVE_REQUESTS_CACHE'); } catch (e) {}
   }
 
   return {
@@ -625,8 +639,10 @@ function resolveRequestInSheet(requestId) {
  * Mengirimkan sinyal konfirmasi reset selesai dari Proktor Utama ke Proktor Bayangan (Fast Cache)
  */
 function confirmResetInSheet(fromRoom, targetRoom, proctorId, detail, requestId) {
+  if (!targetRoom) return { status: 'error', message: 'Target ruang wajib diisi.' };
   if (requestId) {
-    resolveRequestInSheet(requestId);
+    const result = resolveRequestInSheet(requestId);
+    if (result.status !== 'success') return result;
   }
 
   const timestamp = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'HH:mm:ss');
@@ -647,6 +663,7 @@ function confirmResetInSheet(fromRoom, targetRoom, proctorId, detail, requestId)
     }
   } catch (e) {
     console.warn('Cache confirm_reset error:', e);
+    return { status: 'error', message: 'Sinyal konfirmasi reset gagal dikirim. Silakan coba lagi.' };
   }
 
   return {
