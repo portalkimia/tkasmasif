@@ -371,14 +371,26 @@
           </div>
           <div class="gate-proctor-name">${escapeHtml(r.name)}</div>
           <div class="gate-partner-info">${partnerText}</div>
-          <div class="gate-auth-box">
-            <div class="gate-auth-item">
+          <div class="gate-auth-box" onclick="event.stopPropagation();">
+            <div class="gate-auth-item" title="Klik untuk salin Proktor ID" onclick="event.stopPropagation(); window.anbkApp.copyText('${escapeJs(r.proctorId)}', 'Proktor ID (${escapeJs(r.proctorId)}) disalin!');">
               <span class="gate-auth-label">Proktor ID:</span>
-              <strong class="gate-auth-val">${escapeHtml(r.proctorId)}</strong>
+              <span class="gate-auth-val-wrap">
+                <strong class="gate-auth-val">${escapeHtml(r.proctorId)}</strong>
+                <svg class="gate-copy-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </span>
             </div>
-            <div class="gate-auth-item">
+            <div class="gate-auth-item" title="Klik untuk salin Password" onclick="event.stopPropagation(); window.anbkApp.copyText('${escapeJs(pass)}', 'Password (${escapeJs(pass)}) disalin!');">
               <span class="gate-auth-label">Password:</span>
-              <strong class="gate-auth-val gate-auth-pass">${escapeHtml(pass)}</strong>
+              <span class="gate-auth-val-wrap">
+                <strong class="gate-auth-val gate-auth-pass">${escapeHtml(pass)}</strong>
+                <svg class="gate-copy-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </span>
             </div>
           </div>
           <div class="gate-card-bottom">
